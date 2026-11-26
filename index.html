@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>HALLO ROOM by T.Koi — 4-iPad Horizontal Classroom Studio</title>
+  <title>HALLO ROOM by T.Koi — Ultra-Low-Latency 4-iPad Horizontal Studio</title>
 
-  <!-- iPad / iOS Home Screen PWA Meta Tags for 1-Tap Daily Launch -->
+  <!-- iPadOS / iOS Home Screen PWA Meta Tags for 1-Tap Daily Classroom Launch -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -13,10 +13,10 @@
   <meta name="application-name" content="HALLO ROOM" />
   <meta name="theme-color" content="#020617" />
 
-  <!-- Inter & JetBrains Mono Typography -->
+  <!-- Typography: Inter & JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -34,10 +34,10 @@
     };
   </script>
 
-  <!-- PeerJS 1.5.4 for WebRTC Signaling -->
+  <!-- PeerJS 1.5.4 for Fast Direct LAN / STUN WebRTC Signaling -->
   <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-  <!-- QRCode.js for Instant Per-Slot Scannable Join QR Codes -->
+  <!-- QRCodeJS 1.0.0 for Instant Per-Slot Scannable Join QR Codes -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
@@ -50,7 +50,7 @@
 
     /* Subtle dark classroom studio grid backdrop */
     .studio-dots {
-      background-image: radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.14) 1px, transparent 0);
+      background-image: radial-gradient(circle at 1px 1px, rgba(45, 212, 191, 0.12) 1px, transparent 0);
       background-size: 22px 22px;
     }
 
@@ -63,26 +63,72 @@
       image-rendering: pixelated;
     }
 
-    /* Slot toolbar: subtly visible on touch devices, full opacity on hover */
+    /* Floating per-slot toolbar: subtly visible on touch devices, full opacity on hover */
     .slot-toolbar {
-      opacity: 0.86;
+      opacity: 0.9;
       transition: opacity 160ms ease, transform 160ms ease;
     }
     @media (hover: hover) {
       .slot-tile .slot-toolbar {
-        opacity: 0;
-        transform: translateY(-2px);
+        opacity: 0.18;
       }
       .slot-tile:hover .slot-toolbar,
-      .slot-tile:focus-within .slot-toolbar {
+      .slot-tile:focus-within .slot-toolbar,
+      .slot-tile.is-zoomed .slot-toolbar {
         opacity: 1;
-        transform: translateY(0);
       }
     }
 
-    /* Video rotation container smooth transitions */
+    /* GPU-accelerated smooth optical zoom/pan transition (disabled during active drag/pinch) */
     .slot-video-el {
-      transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1);
+      will-change: transform;
+      transform-origin: center center;
+      user-select: none;
+      -webkit-user-drag: none;
+    }
+    .slot-video-el.zoom-smooth {
+      transition: transform 190ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Keep background spotlighted tiles decoding smoothly without occupying layout space */
+    .slot-bg-keepalive {
+      position: fixed !important;
+      left: -9999px !important;
+      top: -9999px !important;
+      width: 320px !important;
+      height: 240px !important;
+      opacity: 0.001 !important;
+      pointer-events: none !important;
+      z-index: -1 !important;
+    }
+
+    /* Custom sleek range slider for Zoom Controls */
+    input[type="range"].zoom-range {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(51, 65, 85, 0.9);
+      height: 6px;
+      border-radius: 9999px;
+      outline: none;
+    }
+    input[type="range"].zoom-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 9999px;
+      background: #2dd4bf;
+      border: 2px solid #020617;
+      cursor: pointer;
+      box-shadow: 0 0 0 2px rgba(45, 212, 191, 0.3);
+    }
+    input[type="range"].zoom-range::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 9999px;
+      background: #2dd4bf;
+      border: 2px solid #020617;
+      cursor: pointer;
     }
 
     ::-webkit-scrollbar {
@@ -98,10 +144,10 @@
     }
   </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100 antialiased overflow-x-hidden selection:bg-sky-500/30 selection:text-sky-200">
+<body class="min-h-screen bg-slate-950 text-slate-100 antialiased overflow-x-hidden selection:bg-teal-500/30 selection:text-teal-200">
 
   <!-- Non-Blocking Toast Stack (replaces alert/confirm) -->
-  <div id="toast-container" class="fixed bottom-4 right-4 z-[70] flex flex-col gap-2 max-w-sm w-[calc(100vw-2rem)] pointer-events-none"></div>
+  <div id="toast-container" class="fixed bottom-4 right-4 z-[80] flex flex-col gap-2 max-w-sm w-[calc(100vw-2rem)] pointer-events-none"></div>
 
   <!-- ===================================================================== -->
   <!-- VIEW 1: LANDING / ROLE SELECTION SCREEN                               -->
@@ -111,36 +157,36 @@
 
       <!-- Brand Hero -->
       <header class="text-center mb-7 sm:mb-9">
-        <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/95 border border-slate-700/80 shadow-lg mb-4">
+        <div class="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full bg-slate-900/95 border border-teal-500/30 shadow-lg mb-4">
           <span class="grid grid-cols-2 gap-0.5 w-4 h-4">
+            <span class="rounded-[2px] bg-[#2dd4bf]"></span>
             <span class="rounded-[2px] bg-[#38bdf8]"></span>
-            <span class="rounded-[2px] bg-[#34d399]"></span>
             <span class="rounded-[2px] bg-[#fbbf24]"></span>
             <span class="rounded-[2px] bg-[#f472b6]"></span>
           </span>
-          <span class="text-xs font-bold tracking-wider uppercase text-slate-200">4-Screen Horizontal iPad Classroom Studio</span>
+          <span class="text-xs font-bold tracking-wider uppercase text-teal-200">Ultra-Low-Latency 4-iPad Horizontal Studio</span>
         </div>
 
-        <div class="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 mb-2.5">
+        <div class="flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1.5 mb-2.5">
           <h1 class="text-4xl sm:text-6xl font-black tracking-tight text-white">
-            HALLO <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#38bdf8] via-[#34d399] to-[#fbbf24]">ROOM</span>
+            HALLO <span class="text-transparent bg-clip-text bg-gradient-to-r from-[#2dd4bf] via-[#38bdf8] to-[#fbbf24]">ROOM</span>
           </h1>
-          <span class="px-3 py-1 rounded-full bg-gradient-to-r from-sky-500/20 to-pink-500/20 border border-sky-400/35 text-sm sm:text-base font-extrabold text-sky-200 tracking-wide">
+          <span class="px-3 py-1 rounded-full bg-gradient-to-r from-teal-500/20 to-amber-500/20 border border-teal-400/40 text-sm sm:text-base font-extrabold text-teal-200 tracking-wide">
             by T.Koi
           </span>
         </div>
 
         <p class="text-slate-400 text-sm sm:text-lg max-w-2xl mx-auto">
-          Mirror up to <strong class="text-slate-100 font-semibold">4 horizontal (landscape) iPads</strong> edge-to-edge on one classroom TV or projector with instant 1-tap QR join.
+          Mirror <strong class="text-slate-100 font-semibold">4 horizontal 4:3 iPads</strong> simultaneously with hardware H.264 ultra-low-latency streaming, zero-buffer playback, and smooth <strong class="text-teal-300 font-semibold">50%–350% Optical Zoom, Pan &amp; Spotlight</strong>.
         </p>
 
         <!-- Quick AirPlay Note Pill -->
-        <div class="mt-4 flex justify-center">
-          <button type="button" data-open-airplay-note class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-sky-300 transition-colors">
+        <div class="mt-4 flex flex-wrap justify-center gap-2">
+          <button type="button" data-open-airplay-note class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-xs font-semibold text-teal-300 transition-colors">
             <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <span>AirPlay Note: How 1-Tap iPad Connect Works</span>
+            <span>AirPlay Note: Why QR &amp; 1-Tap Connect Is Faster</span>
           </button>
         </div>
       </header>
@@ -149,14 +195,14 @@
       <section aria-label="Device Readiness" class="mb-7 rounded-2xl bg-slate-900/90 border border-slate-800 p-4 shadow-xl">
         <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
           <div class="flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-[#34d399]"></span>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Device Readiness Check</h2>
+            <span class="w-2 h-2 rounded-full bg-[#2dd4bf]"></span>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300">Engine &amp; Device Readiness</h2>
           </div>
           <span id="cap-platform-tag" class="text-xs font-mono text-slate-400">Checking device...</span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <div id="cap-https" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs">
+          <div id="cap-https" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-950/75 border border-slate-800 text-xs">
             <span class="w-2.5 h-2.5 rounded-full bg-slate-600 shrink-0"></span>
             <div class="min-w-0">
               <div class="font-semibold text-slate-200">HTTPS Context</div>
@@ -164,82 +210,80 @@
             </div>
           </div>
 
-          <div id="cap-webrtc" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs">
+          <div id="cap-webrtc" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-950/75 border border-slate-800 text-xs">
             <span class="w-2.5 h-2.5 rounded-full bg-slate-600 shrink-0"></span>
             <div class="min-w-0">
-              <div class="font-semibold text-slate-200">WebRTC · PeerJS 1.5.4</div>
+              <div class="font-semibold text-slate-200">WebRTC · H.264 Engine</div>
               <div class="text-slate-400 truncate">Checking...</div>
             </div>
           </div>
 
-          <div id="cap-display" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs">
+          <div id="cap-display" class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-slate-950/75 border border-slate-800 text-xs">
             <span class="w-2.5 h-2.5 rounded-full bg-slate-600 shrink-0"></span>
             <div class="min-w-0">
-              <div class="font-semibold text-slate-200">iPad Screen Capture</div>
+              <div class="font-semibold text-slate-200">iPad Screen Mirror</div>
               <div class="text-slate-400 truncate">Checking...</div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Role Selection Cards -->
+      <!-- Two Primary Modes -->
       <section class="grid grid-cols-1 md:grid-cols-2 gap-5">
-        <!-- Card 1: Classroom TV / Viewer Host -->
-        <button id="btn-launch-viewer" type="button" class="group text-left rounded-2xl bg-slate-900/95 hover:bg-slate-900 border-2 border-slate-800 hover:border-[#38bdf8] p-6 sm:p-7 transition-all duration-200 shadow-2xl hover:shadow-sky-500/15 focus:outline-none focus:ring-2 focus:ring-[#38bdf8]">
+        <!-- Card 1: Host Studio (4-Screen TV/Display) -->
+        <button id="btn-launch-viewer" type="button" class="group text-left rounded-2xl bg-slate-900/95 hover:bg-slate-900 border-2 border-slate-800 hover:border-[#2dd4bf] p-6 sm:p-7 transition-all duration-200 shadow-2xl hover:shadow-teal-500/15 focus:outline-none focus:ring-2 focus:ring-[#2dd4bf]">
           <div class="flex items-start justify-between gap-3 mb-5">
-            <div class="w-14 h-14 rounded-2xl bg-sky-500/15 border border-sky-400/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <!-- Horizontal 2x2 Landscape iPads Icon -->
-              <svg class="w-8 h-8 text-[#38bdf8]" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+            <div class="w-14 h-14 rounded-2xl bg-teal-500/15 border border-teal-400/35 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <svg class="w-8 h-8 text-[#2dd4bf]" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
                 <rect x="2" y="3.5" width="9" height="7" rx="1.4" />
                 <rect x="13" y="3.5" width="9" height="7" rx="1.4" />
                 <rect x="2" y="13.5" width="9" height="7" rx="1.4" />
                 <rect x="13" y="13.5" width="9" height="7" rx="1.4" />
               </svg>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-sky-500/15 text-[#38bdf8] border border-sky-400/25">
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-teal-500/15 text-[#2dd4bf] border border-teal-400/30">
               Teacher TV · Projector · Mac
             </span>
           </div>
 
-          <h2 class="text-2xl font-extrabold text-white mb-2 group-hover:text-[#38bdf8] transition-colors">
-            Open Classroom Board (4 iPads)
+          <h2 class="text-2xl font-extrabold text-white mb-2 group-hover:text-[#2dd4bf] transition-colors">
+            Host Studio (4-Screen TV/Display)
           </h2>
           <p class="text-sm text-slate-400 leading-relaxed mb-6">
-            Displays 4 horizontal 4:3 iPad frames edge-to-edge with a scannable QR code in each slot, lockable daily Room Name, Spotlight click-to-zoom, Rotate 90°, and a 4-iPad Demo mode.
+            Full 2×2 horizontal 4:3 iPad wall with live ms/FPS/H.264 telemetry, live Latency Mode switcher, 50%–350% Zoom &amp; Drag-to-Pan, Spotlight switcher, QR join codes, and instant 4-iPad Test Demo.
           </p>
 
-          <div class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#38bdf8] text-slate-950 font-extrabold text-sm shadow-lg shadow-sky-500/25 group-hover:bg-sky-300 transition-colors">
-            <span>Launch 4-Screen Board</span>
+          <div class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#2dd4bf] text-slate-950 font-extrabold text-sm shadow-lg shadow-teal-500/25 group-hover:bg-teal-300 transition-colors">
+            <span>Launch Host Studio</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
             </svg>
           </div>
         </button>
 
-        <!-- Card 2: Student iPad Sender -->
-        <button id="btn-launch-sender" type="button" class="group text-left rounded-2xl bg-slate-900/95 hover:bg-slate-900 border-2 border-slate-800 hover:border-[#34d399] p-6 sm:p-7 transition-all duration-200 shadow-2xl hover:shadow-emerald-500/15 focus:outline-none focus:ring-2 focus:ring-[#34d399]">
+        <!-- Card 2: iPad Sender (1-Tap Mirror) -->
+        <button id="btn-launch-sender" type="button" class="group text-left rounded-2xl bg-slate-900/95 hover:bg-slate-900 border-2 border-slate-800 hover:border-[#fbbf24] p-6 sm:p-7 transition-all duration-200 shadow-2xl hover:shadow-amber-500/15 focus:outline-none focus:ring-2 focus:ring-[#fbbf24]">
           <div class="flex items-start justify-between gap-3 mb-5">
-            <div class="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <!-- Landscape iPad Broadcast Icon -->
-              <svg class="w-8 h-8 text-[#34d399]" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
+            <div class="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-400/35 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <svg class="w-8 h-8 text-[#fbbf24]" fill="none" stroke="currentColor" stroke-width="1.9" viewBox="0 0 24 24">
                 <rect x="2" y="5" width="20" height="14" rx="2.4" />
                 <circle cx="19" cy="12" r="0.8" fill="currentColor" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M9.5 14.5a3.5 3.5 0 010-5M12.5 16a5.5 5.5 0 000-8" />
               </svg>
             </div>
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-[#34d399] border border-emerald-400/25">
+            <span class="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-[#fbbf24] border border-amber-400/30">
               Student / Group iPad
             </span>
           </div>
 
-          <h2 class="text-2xl font-extrabold text-white mb-2 group-hover:text-[#34d399] transition-colors">
-            Connect Horizontal iPad
+          <h2 class="text-2xl font-extrabold text-white mb-2 group-hover:text-[#fbbf24] transition-colors">
+            iPad Sender (1-Tap Mirror)
           </h2>
           <p class="text-sm text-slate-400 leading-relaxed mb-6">
-            Enter the room code or scan any slot QR code on the board to jump straight into a 1-tap horizontal mirror screen with automatic 1280×960 landscape capture and Camera fallback.
+            Scan any slot QR code or enter your Room Code for instant 1-tap horizontal H.264 mirroring with live bitrate/FPS adaptation from the Host Studio and Camera fallback for older iPadOS.
           </p>
 
-          <div class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#34d399] text-slate-950 font-extrabold text-sm shadow-lg shadow-emerald-500/25 group-hover:bg-emerald-300 transition-colors">
+          <div class="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#fbbf24] text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/25 group-hover:bg-amber-300 transition-colors">
             <span>Connect This iPad</span>
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
@@ -251,10 +295,10 @@
 
     <!-- Footer -->
     <footer class="max-w-5xl w-full mx-auto mt-8 pt-4 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-slate-500">
-      <span><strong class="text-slate-300">HALLO ROOM</strong> by T.Koi · Single-File WebRTC Classroom Studio (Cloudflare Pages Ready)</span>
+      <span><strong class="text-slate-300">HALLO ROOM</strong> by T.Koi · Ultra-Low-Latency WebRTC Classroom Studio (Cloudflare Pages Ready)</span>
       <span class="flex items-center gap-3">
-        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#38bdf8]"></span>iPad 1</span>
-        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#34d399]"></span>iPad 2</span>
+        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#2dd4bf]"></span>iPad 1</span>
+        <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#38bdf8]"></span>iPad 2</span>
         <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#fbbf24]"></span>iPad 3</span>
         <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#f472b6]"></span>iPad 4</span>
       </span>
@@ -262,73 +306,94 @@
   </main>
 
   <!-- ===================================================================== -->
-  <!-- VIEW 2: VIEWER MODE (2x2 HORIZONTAL IPAD STUDIO BOARD)                -->
+  <!-- VIEW 2: HOST STUDIO (4-SCREEN HORIZONTAL GRID + ZOOM + SPOTLIGHT)     -->
   <!-- ===================================================================== -->
   <section id="view-viewer" class="hidden h-[100dvh] w-screen overflow-hidden flex flex-col bg-slate-950 relative select-none">
 
-    <!-- Floating Reveal Pill (when top bar is hidden for clean TV projection) -->
-    <button id="btn-show-topbar" type="button" class="hidden fixed top-2.5 left-1/2 -translate-x-1/2 z-40 px-4 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-xs font-bold text-slate-100 shadow-2xl backdrop-blur-md flex items-center gap-2 transition-all">
-      <span class="w-2 h-2 rounded-full bg-[#38bdf8] animate-pulse"></span>
-      <span>HALLO ROOM · <span id="floating-room-code" class="font-mono text-sky-300">----</span> · Show Bar</span>
+    <!-- Floating Reveal Pill (when studio top bar is hidden for clean TV projection) -->
+    <button id="btn-show-topbar" type="button" class="hidden fixed top-2.5 left-1/2 -translate-x-1/2 z-40 px-4 py-1.5 rounded-full bg-slate-900/90 hover:bg-slate-800 border border-teal-500/40 text-xs font-bold text-slate-100 shadow-2xl backdrop-blur-md flex items-center gap-2 transition-all">
+      <span class="w-2 h-2 rounded-full bg-[#2dd4bf] animate-pulse"></span>
+      <span>HALLO ROOM · <span id="floating-room-code" class="font-mono text-teal-300">HALLO</span> · Show Studio Bar</span>
     </button>
 
-    <!-- Compact Studio Top Bar -->
+    <!-- Main Studio Top Bar (hidden automatically while in Spotlight Focus Mode) -->
     <header id="viewer-topbar" class="shrink-0 bg-slate-900/95 border-b border-slate-800 px-2.5 py-1.5 sm:px-3.5 flex flex-wrap items-center justify-between gap-2 z-30">
-      <!-- Left: HALLO ROOM by T.Koi Brand + Editable/Lockable Room Code -->
+
+      <!-- Left: Brand + Lockable Room Code + Live Counter -->
       <div class="flex flex-wrap items-center gap-2">
         <div class="flex items-center gap-2 pr-2 border-r border-slate-800">
           <span class="grid grid-cols-2 gap-0.5 w-4 h-4 shrink-0">
+            <span class="rounded-[2px] bg-[#2dd4bf]"></span>
             <span class="rounded-[2px] bg-[#38bdf8]"></span>
-            <span class="rounded-[2px] bg-[#34d399]"></span>
             <span class="rounded-[2px] bg-[#fbbf24]"></span>
             <span class="rounded-[2px] bg-[#f472b6]"></span>
           </span>
           <div class="leading-tight">
             <div class="font-black text-xs sm:text-sm tracking-tight text-white">HALLO ROOM</div>
-            <div class="text-[10px] font-bold text-sky-400 -mt-0.5">by T.Koi</div>
+            <div class="text-[10px] font-bold text-teal-400 -mt-0.5">by T.Koi</div>
           </div>
         </div>
 
-        <!-- Room Code Copy Badge + Edit/Lock Button -->
+        <!-- Room Code Copy + Edit/Lock -->
         <div class="flex items-center rounded-xl bg-slate-950 border border-slate-700/80 overflow-hidden">
-          <button id="btn-copy-room" type="button" title="Click to copy Room Join Link" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-900 transition-colors active:scale-95">
+          <button id="btn-copy-room" type="button" title="Copy Room Join Link" class="flex items-center gap-2 px-2.5 py-1.5 hover:bg-slate-900 transition-colors active:scale-95">
             <span id="viewer-peer-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0"></span>
-            <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 hidden sm:inline">Room</span>
-            <span id="viewer-room-code" class="font-mono text-sm sm:text-base font-extrabold tracking-widest text-white">----</span>
-            <span id="viewer-lock-icon" class="hidden text-amber-400 text-xs" title="Room locked for daily Home Screen bookmarks">🔒</span>
+            <span class="text-[10px] uppercase tracking-wider font-bold text-slate-400 hidden md:inline">Room</span>
+            <span id="viewer-room-code" class="font-mono text-sm sm:text-base font-extrabold tracking-widest text-white">HALLO</span>
+            <span id="viewer-lock-icon" class="hidden text-amber-400 text-xs" title="Room locked in localStorage">🔒</span>
           </button>
-          <button id="btn-edit-room" type="button" title="Set or Lock Fixed Room Name (e.g. HALLO)" class="px-2.5 py-1.5 border-l border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors">
+          <button id="btn-edit-room" type="button" title="Edit / Lock Classroom Room Name" class="px-2.5 py-1.5 border-l border-slate-800 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors">
             ✎
           </button>
         </div>
 
-        <span id="viewer-live-badge" class="hidden lg:inline-flex items-center px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-[11px] font-bold">
+        <span id="viewer-live-badge" class="hidden xl:inline-flex items-center px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-[11px] font-bold">
           0 / 4 Live
         </span>
       </div>
 
-      <!-- Right: Compact Studio Toggles -->
+      <!-- Center / Right: Latency Mode Selector + Zoom/Layout/Demo Controls -->
       <div class="flex flex-wrap items-center gap-1.5">
-        <!-- 2x2 Grid vs Auto-Fit -->
-        <div class="inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800" role="group" aria-label="Grid layout">
+
+        <!-- UPGRADE 1: Live Latency Mode Selector (synced to QR + active Senders) -->
+        <div class="inline-flex items-center rounded-lg bg-slate-950 p-0.5 border border-slate-800" role="group" aria-label="WebRTC Latency Mode">
+          <button id="btn-mode-ultra" type="button" title="960×720 · 30 FPS · ~950kbps · Zero-lag motion" class="px-2 py-1 rounded-md text-[11px] font-bold bg-[#2dd4bf] text-slate-950 transition-colors">
+            ⚡ Ultra-Low
+          </button>
+          <button id="btn-mode-balanced" type="button" title="1024×768 · 24 FPS · ~1.4Mbps · Balanced" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-400 hover:text-white transition-colors">
+            Balanced
+          </button>
+          <button id="btn-mode-sharp" type="button" title="1280×960 · 18 FPS · ~2.0Mbps · Crisp code detail" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-400 hover:text-white transition-colors">
+            Sharp Code
+          </button>
+        </div>
+
+        <!-- Global Fill Box / Full Fit Toggle -->
+        <div class="inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800" role="group" aria-label="Video Fit Mode">
+          <button id="btn-fit-cover" type="button" title="Fill horizontal boxes edge-to-edge" class="px-2 py-1 rounded-md text-[11px] font-bold bg-sky-500 text-slate-950 transition-colors">Fill Box</button>
+          <button id="btn-fit-contain" type="button" title="Show full uncropped 4:3 frame" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-400 hover:text-white transition-colors">Full Fit</button>
+        </div>
+
+        <!-- 2x2 vs Auto-Fit Grid Toggle -->
+        <div class="hidden sm:inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800" role="group" aria-label="Grid Layout">
           <button id="btn-layout-2x2" type="button" class="px-2 py-1 rounded-md text-[11px] font-bold bg-slate-800 text-white transition-colors">2×2</button>
-          <button id="btn-layout-auto" type="button" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-400 hover:text-white transition-colors">Auto-Fit</button>
+          <button id="btn-layout-auto" type="button" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-400 hover:text-white transition-colors">Auto</button>
         </div>
 
-        <!-- Fill Box (cover) vs Full Fit (contain) -->
-        <div class="inline-flex rounded-lg bg-slate-950 p-0.5 border border-slate-800" role="group" aria-label="Horizontal video fit mode">
-          <button id="btn-fit-cover" type="button" title="Fill each horizontal box edge-to-edge" class="px-2 py-1 rounded-md text-[11px] font-bold bg-sky-500 text-slate-950 transition-colors">Fill Box</button>
-          <button id="btn-fit-contain" type="button" title="Show full uncropped frame" class="px-2 py-1 rounded-md text-[11px] font-bold text-slate-400 hover:text-white transition-colors">Full Fit</button>
-        </div>
+        <!-- UPGRADE 2: Reset All Zoom Button (highlights whenever any slot is zoomed/panned) -->
+        <button id="btn-reset-all-zoom" type="button" title="Reset all 4 screens to 100% centered" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-400 text-[11px] font-bold transition-all active:scale-95">
+          <span>⌖</span>
+          <span>Reset All Zoom</span>
+        </button>
 
-        <!-- Test Demo (4 Horizontal 4:3 iPads) -->
+        <!-- Test Demo (4 Horizontal 1280x960 Classroom iPads w/ ms Stopwatches) -->
         <button id="btn-toggle-demo" type="button" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/35 text-[#34d399] text-[11px] font-bold transition-colors active:scale-95">
           <span>▶</span>
           <span id="demo-btn-label">Test Demo</span>
         </button>
 
-        <!-- AirPlay Info -->
-        <button type="button" data-open-airplay-note title="AirPlay & 1-Tap Connect Note" class="px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-sky-300 text-[11px] font-bold transition-colors">
+        <!-- AirPlay Note -->
+        <button type="button" data-open-airplay-note title="AirPlay & 1-Tap Connect Note" class="hidden md:inline-flex px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-teal-300 text-[11px] font-bold transition-colors">
           AirPlay Note
         </button>
 
@@ -340,7 +405,7 @@
         </button>
 
         <!-- Collapse Top Bar -->
-        <button id="btn-hide-topbar" type="button" title="Hide Top Bar for Clean Projector View" class="p-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors">
+        <button id="btn-hide-topbar" type="button" title="Hide Studio Bar for Clean TV View" class="p-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M5 15l7-7 7 7" />
           </svg>
@@ -353,21 +418,66 @@
       </div>
     </header>
 
+    <!-- =================================================================== -->
+    <!-- UPGRADE 2: ENHANCED SPOTLIGHT (FULL-SCREEN FOCUS) HEADER BAR        -->
+    <!-- =================================================================== -->
+    <header id="spotlight-bar" class="hidden shrink-0 bg-slate-900/95 border-b border-teal-500/35 px-2.5 py-2 sm:px-4 flex flex-wrap items-center justify-between gap-2 z-30 shadow-xl">
+
+      <!-- Left: Back to 4-Screen Grid + Brand + Student 1-2-3-4 Switcher Pills -->
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btn-spotlight-back" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#2dd4bf] hover:bg-teal-300 text-slate-950 font-extrabold text-xs shadow-lg shadow-teal-500/20 transition-colors active:scale-95">
+          <span>⊞</span>
+          <span>Back to 4-Screen Grid</span>
+        </button>
+
+        <!-- 1-2-3-4 Quick Student Switcher Pills -->
+        <div id="spotlight-switcher" class="flex flex-wrap items-center gap-1.5">
+          <!-- Populated dynamically by JS -->
+        </div>
+      </div>
+
+      <!-- Right: Full Optical Zoom Controls (50%–350% Slider + Buttons) + Fit + Rotate + Telemetry -->
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+        <span id="spotlight-telemetry" class="font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-400/35 text-emerald-300">
+          --ms · --fps
+        </span>
+
+        <div class="flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-950 border border-slate-700/80">
+          <button id="btn-spot-zoom-out" type="button" title="Zoom Out (-25%)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-sm flex items-center justify-center active:scale-95">−</button>
+
+          <input id="spot-zoom-slider" type="range" min="50" max="350" step="5" value="100" aria-label="Spotlight Zoom Percentage" class="zoom-range w-24 sm:w-36" />
+
+          <button id="btn-spot-zoom-in" type="button" title="Zoom In (+25%)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-sm flex items-center justify-center active:scale-95">+</button>
+
+          <button id="btn-spot-zoom-reset" type="button" title="Reset Zoom to 100% & Center Pan" class="px-2 py-1 rounded-lg bg-slate-800 hover:bg-teal-500 hover:text-slate-950 text-teal-300 font-mono text-xs font-extrabold min-w-[54px] text-center transition-colors">
+            100%
+          </button>
+        </div>
+
+        <button id="btn-spot-fit" type="button" title="Toggle Fill Box / Full Fit for this screen" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-xs font-bold transition-colors">
+          Fill Box
+        </button>
+
+        <button id="btn-spot-rotate" type="button" title="Rotate 90°" class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 text-xs font-bold transition-colors">
+          ↻ 90°
+        </button>
+      </div>
+    </header>
+
     <!-- Edge-to-Edge 2x2 Horizontal iPad Grid -->
-    <div id="viewer-grid" class="flex-1 min-h-0 p-1.5 sm:p-2 grid grid-cols-2 grid-rows-2 gap-1.5 sm:gap-2 bg-slate-950">
-      <!-- 4 Horizontal iPad Slot Frames populated by JavaScript -->
+    <div id="viewer-grid" class="flex-1 min-h-0 p-1.5 sm:p-2 grid grid-cols-2 grid-rows-2 gap-1.5 sm:gap-2 bg-slate-950 relative">
+      <!-- 4 Horizontal iPad Slot Frames populated by JS -->
     </div>
   </section>
 
   <!-- ===================================================================== -->
-  <!-- VIEW 3: SENDER MODE (1-TAP HORIZONTAL IPAD MIRROR SCREEN)             -->
+  <!-- VIEW 3: IPAD SENDER (1-TAP HORIZONTAL H.264 MIRROR SCREEN)            -->
   <!-- ===================================================================== -->
   <section id="view-sender" class="hidden min-h-[100dvh] studio-dots flex flex-col justify-between px-4 py-4 sm:px-6">
 
-    <!-- Non-Blocking Portrait Orientation Reminder Banner (shown when height > width) -->
+    <!-- Non-Blocking Portrait Orientation Reminder Banner -->
     <div id="portrait-warning-banner" class="hidden max-w-3xl w-full mx-auto mb-3 rounded-2xl bg-amber-400/15 border-2 border-amber-400/60 px-4 py-3 flex items-center gap-3 shadow-lg">
       <div class="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0">
-        <!-- Rotate iPad to Landscape Icon -->
         <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
           <rect x="3" y="6" width="18" height="12" rx="2" />
           <path stroke-linecap="round" stroke-linejoin="round" d="M16 12h.01" />
@@ -375,7 +485,7 @@
       </div>
       <div class="text-xs sm:text-sm">
         <div class="font-extrabold text-amber-300">Turn Your iPad Sideways (Horizontal)!</div>
-        <div class="text-amber-100/90">HALLO ROOM is built for landscape screens so your full iPad fills the TV box cleanly.</div>
+        <div class="text-amber-100/90">HALLO ROOM is engineered for 4:3 landscape screens so your iPad fills the classroom TV cleanly.</div>
       </div>
     </div>
 
@@ -387,12 +497,12 @@
         </button>
         <div class="leading-tight hidden sm:block pl-1">
           <span class="font-black text-sm text-white">HALLO ROOM</span>
-          <span class="text-xs font-bold text-sky-400 ml-1">by T.Koi</span>
+          <span class="text-xs font-bold text-teal-400 ml-1">by T.Koi</span>
         </div>
       </div>
 
       <div class="flex items-center gap-2">
-        <button type="button" data-open-airplay-note class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] font-bold text-sky-300">
+        <button type="button" data-open-airplay-note class="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-[11px] font-bold text-teal-300">
           AirPlay Note
         </button>
         <div id="sender-status-pill" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-bold text-slate-300">
@@ -402,22 +512,24 @@
       </div>
     </header>
 
-    <!-- Main Landscape-Friendly Sender Container -->
+    <!-- Main Landscape-Friendly Sender Card -->
     <div class="max-w-3xl w-full mx-auto flex-1 flex flex-col justify-center">
       <div class="rounded-3xl bg-slate-900/95 border border-slate-800 p-5 sm:p-7 shadow-2xl">
 
-        <!-- Direct Join / Instant 1-Tap Header -->
+        <!-- Direct Join Header -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 mb-5 border-b border-slate-800">
           <div class="flex items-center gap-3">
-            <div id="sender-slot-badge" class="w-12 h-12 rounded-2xl bg-[#38bdf8] text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg shrink-0">
+            <div id="sender-slot-badge" class="w-12 h-12 rounded-2xl bg-[#2dd4bf] text-slate-950 font-black text-2xl flex items-center justify-center shadow-lg shrink-0">
               1
             </div>
             <div>
               <h1 id="sender-ready-heading" class="text-xl sm:text-2xl font-black text-white leading-tight">
                 Ready to Mirror — iPad Slot 1
               </h1>
-              <p class="text-xs sm:text-sm text-slate-400 mt-0.5">
-                Room <strong id="sender-room-display" class="font-mono text-sky-300 tracking-wider">----</strong> · Horizontal 4:3 (1280×960 · 20 FPS)
+              <p class="text-xs sm:text-sm text-slate-400 mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                <span>Room <strong id="sender-room-display" class="font-mono text-teal-300 tracking-wider">HALLO</strong></span>
+                <span class="text-slate-600">·</span>
+                <span id="sender-mode-summary" class="font-mono text-xs text-amber-300 font-bold">⚡ Ultra-Low (960×720 · 30fps · H.264)</span>
               </p>
             </div>
           </div>
@@ -433,7 +545,7 @@
           <p class="text-xs text-rose-100/90 mt-1 leading-relaxed" id="sender-error-msg"></p>
         </div>
 
-        <!-- Collapsible Room / Slot / Student Name Settings (auto-collapsed on QR scan!) -->
+        <!-- Collapsible Room / Slot / Student Name / Latency Profile Settings -->
         <div id="sender-settings-panel" class="mb-5 p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-4">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
@@ -448,7 +560,7 @@
                 autocapitalize="characters"
                 spellcheck="false"
                 placeholder="HALLO"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border-2 border-slate-700 focus:border-[#38bdf8] focus:outline-none text-center font-mono text-xl font-extrabold tracking-[0.2em] text-white uppercase placeholder:text-slate-600"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border-2 border-slate-700 focus:border-[#2dd4bf] focus:outline-none text-center font-mono text-xl font-extrabold tracking-[0.2em] text-white uppercase placeholder:text-slate-600"
               />
             </div>
 
@@ -461,35 +573,48 @@
                 type="text"
                 maxlength="24"
                 placeholder="iPad 1"
-                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:border-[#38bdf8] focus:outline-none text-sm font-semibold text-white placeholder:text-slate-500"
+                class="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 focus:border-[#2dd4bf] focus:outline-none text-sm font-semibold text-white placeholder:text-slate-500"
               />
             </div>
           </div>
 
-          <div>
-            <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-              Choose Screen Slot
-            </label>
-            <div class="grid grid-cols-4 gap-2">
-              <button type="button" data-pick-slot="1" class="sender-slot-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-extrabold text-sm text-white transition-all active:scale-95">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#38bdf8] mr-1.5"></span>1
-              </button>
-              <button type="button" data-pick-slot="2" class="sender-slot-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-extrabold text-sm text-white transition-all active:scale-95">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#34d399] mr-1.5"></span>2
-              </button>
-              <button type="button" data-pick-slot="3" class="sender-slot-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-extrabold text-sm text-white transition-all active:scale-95">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#fbbf24] mr-1.5"></span>3
-              </button>
-              <button type="button" data-pick-slot="4" class="sender-slot-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-extrabold text-sm text-white transition-all active:scale-95">
-                <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#f472b6] mr-1.5"></span>4
-              </button>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                Screen Slot (1–4)
+              </label>
+              <div class="grid grid-cols-4 gap-2">
+                <button type="button" data-pick-slot="1" class="sender-slot-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-extrabold text-sm text-white transition-all active:scale-95">
+                  <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#2dd4bf] mr-1"></span>1
+                </button>
+                <button type="button" data-pick-slot="2" class="sender-slot-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-extrabold text-sm text-white transition-all active:scale-95">
+                  <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#38bdf8] mr-1"></span>2
+                </button>
+                <button type="button" data-pick-slot="3" class="sender-slot-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-extrabold text-sm text-white transition-all active:scale-95">
+                  <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#fbbf24] mr-1"></span>3
+                </button>
+                <button type="button" data-pick-slot="4" class="sender-slot-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-extrabold text-sm text-white transition-all active:scale-95">
+                  <span class="inline-block w-2.5 h-2.5 rounded-full bg-[#f472b6] mr-1"></span>4
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                Latency Profile (Auto-Synced w/ Host)
+              </label>
+              <div class="grid grid-cols-3 gap-1.5">
+                <button type="button" data-pick-mode="ultra" class="sender-mode-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-bold text-xs text-white transition-all">⚡ Ultra</button>
+                <button type="button" data-pick-mode="balanced" class="sender-mode-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-bold text-xs text-white transition-all">Balanced</button>
+                <button type="button" data-pick-mode="sharp" class="sender-mode-pick py-2.5 rounded-xl bg-slate-900 border-2 border-slate-800 font-bold text-xs text-white transition-all">Sharp</button>
+              </div>
             </div>
           </div>
         </div>
 
         <!-- GIANT 1-TAP PRIMARY ACTION BUTTONS -->
         <div id="sender-idle-actions" class="space-y-3">
-          <button id="btn-tap-mirror" type="button" class="w-full py-6 sm:py-7 px-6 rounded-2xl bg-gradient-to-r from-[#38bdf8] via-[#34d399] to-[#fbbf24] hover:brightness-110 text-slate-950 font-black text-xl sm:text-2xl tracking-tight shadow-2xl shadow-sky-500/25 flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
+          <button id="btn-tap-mirror" type="button" class="w-full py-6 sm:py-7 px-6 rounded-2xl bg-gradient-to-r from-[#2dd4bf] via-[#38bdf8] to-[#fbbf24] hover:brightness-110 text-slate-950 font-black text-xl sm:text-2xl tracking-tight shadow-2xl shadow-teal-500/25 flex items-center justify-center gap-3 transition-all active:scale-[0.98]">
             <svg class="w-7 h-7 sm:w-8 sm:h-8 shrink-0" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
               <rect x="2" y="4" width="20" height="14" rx="2.5" />
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 21h8M12 18v3" />
@@ -502,28 +627,31 @@
               <path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
               <circle cx="12" cy="13" r="3" />
             </svg>
-            <span>Use Camera Instead (Older iPadOS)</span>
+            <span>Use Camera Instead (Older iPadOS Fallback)</span>
           </button>
         </div>
 
-        <!-- LIVE STREAMING STATE + STOP BUTTON + HORIZONTAL 4:3 PREVIEW -->
+        <!-- LIVE STREAMING STATE + HORIZONTAL 4:3 PREVIEW -->
         <div id="sender-live-panel" class="hidden space-y-4">
           <div class="grid grid-cols-1 sm:grid-cols-5 gap-4 items-center">
-            <div class="sm:col-span-3 rounded-2xl overflow-hidden bg-black border-2 border-emerald-400/50 aspect-[4/3] relative">
+            <div class="sm:col-span-3 rounded-2xl overflow-hidden bg-black border-2 border-teal-400/60 aspect-[4/3] relative">
               <video id="sender-local-video" autoplay playsinline muted class="w-full h-full object-contain"></video>
-              <div class="absolute top-2 left-2 px-2.5 py-1 rounded-lg bg-slate-950/85 border border-emerald-400/40 text-[11px] font-bold text-emerald-300 flex items-center gap-1.5">
+              <div class="absolute top-2 left-2 px-2.5 py-1 rounded-lg bg-slate-950/85 border border-teal-400/40 text-[11px] font-bold text-teal-300 flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
                 <span>LIVE TO HALLO ROOM</span>
               </div>
               <div id="sender-live-stats" class="absolute bottom-2 right-2 px-2 py-0.5 rounded-md bg-slate-950/85 font-mono text-[11px] text-slate-300">
-                1280×960
+                960×720 · 30fps
               </div>
             </div>
 
             <div class="sm:col-span-2 flex flex-col gap-3">
-              <div class="rounded-xl bg-slate-950 border border-slate-800 p-3.5 text-xs text-slate-300 space-y-1">
-                <div class="font-bold text-emerald-300">Mirroring Active</div>
-                <p class="text-slate-400 leading-relaxed">Keep your iPad horizontal. You can switch apps now, or tap Stop below when finished.</p>
+              <div class="rounded-xl bg-slate-950 border border-slate-800 p-3.5 text-xs text-slate-300 space-y-1.5">
+                <div class="font-bold text-teal-300 flex items-center gap-1.5">
+                  <span>⚡</span>
+                  <span id="sender-live-mode-badge">Ultra-Low · H.264</span>
+                </div>
+                <p class="text-slate-400 leading-relaxed">Keep your iPad horizontal. Bitrate &amp; FPS adapt automatically if T.Koi switches Latency Mode on the Host Studio.</p>
               </div>
 
               <button id="btn-stop-mirror" type="button" class="w-full py-4 px-5 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white font-black text-base shadow-xl shadow-rose-500/25 flex items-center justify-center gap-2 transition-all active:scale-95">
@@ -536,7 +664,7 @@
 
         <!-- Home Screen Bookmark Tip -->
         <div class="mt-5 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
-          <span>💡 Tip: In Safari tap <strong class="text-slate-200">Share → Add to Home Screen</strong> to make this Slot a 1-tap daily icon.</span>
+          <span>💡 Tip: In Safari tap <strong class="text-slate-200">Share → Add to Home Screen</strong> for a 1-tap daily iPad shortcut.</span>
           <span class="font-mono text-slate-500">HALLO ROOM by T.Koi</span>
         </div>
 
@@ -552,12 +680,12 @@
   <div id="modal-room-settings" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="max-w-md w-full rounded-2xl bg-slate-900 border border-slate-700 p-5 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-lg font-extrabold text-white">Room Code &amp; Daily Lock</h2>
+        <h2 class="text-lg font-extrabold text-white">Room Name &amp; Daily Lock</h2>
         <button id="btn-close-room-modal" type="button" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">✕</button>
       </div>
 
       <p class="text-xs text-slate-400 leading-relaxed">
-        Lock a fixed classroom room name (like <strong class="text-sky-300 font-mono">HALLO</strong> or <strong class="text-sky-300 font-mono">KOI1</strong>) so student iPads bookmarked to the Home Screen connect to the exact same room every day with zero typing.
+        Lock a fixed classroom Room Name (like <strong class="text-teal-300 font-mono">HALLO</strong> or <strong class="text-teal-300 font-mono">KOI1</strong>) in this browser so student iPads bookmarked to the Home Screen connect every day with zero typing.
       </p>
 
       <div>
@@ -569,15 +697,15 @@
           type="text"
           maxlength="12"
           placeholder="HALLO"
-          class="w-full px-4 py-3 rounded-xl bg-slate-950 border-2 border-slate-700 focus:border-[#38bdf8] focus:outline-none font-mono text-xl font-extrabold tracking-widest text-white uppercase text-center"
+          class="w-full px-4 py-3 rounded-xl bg-slate-950 border-2 border-slate-700 focus:border-[#2dd4bf] focus:outline-none font-mono text-xl font-extrabold tracking-widest text-white uppercase text-center"
         />
       </div>
 
       <label class="flex items-start gap-2.5 p-3 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer">
-        <input id="modal-room-lock" type="checkbox" class="mt-0.5 w-4 h-4 rounded border-slate-600 bg-slate-900 text-[#38bdf8]" />
+        <input id="modal-room-lock" type="checkbox" class="mt-0.5 w-4 h-4 rounded border-slate-600 bg-slate-900 text-[#2dd4bf]" />
         <span class="text-xs text-slate-300 leading-snug">
           <strong class="text-white block">Lock &amp; Save Room in this Browser</strong>
-          Automatically reopen this same Room Name every time you launch HALLO ROOM on this TV/computer.
+          Automatically open this exact Room Name every time you launch HALLO ROOM on this classroom TV.
         </span>
       </label>
 
@@ -589,7 +717,7 @@
           <button id="btn-cancel-room-modal" type="button" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300">
             Cancel
           </button>
-          <button id="btn-save-room-modal" type="button" class="px-4 py-2.5 rounded-xl bg-[#38bdf8] hover:bg-sky-300 text-xs font-extrabold text-slate-950">
+          <button id="btn-save-room-modal" type="button" class="px-4 py-2.5 rounded-xl bg-[#2dd4bf] hover:bg-teal-300 text-xs font-extrabold text-slate-950">
             Apply Room
           </button>
         </div>
@@ -598,16 +726,16 @@
   </div>
 
   <!-- ===================================================================== -->
-  <!-- MODAL 2: AIRPLAY NOTE (BROWSER ALTERNATIVE EXPLAINER)                 -->
+  <!-- MODAL 2: AIRPLAY NOTE (WHY WEB APPS USE QR & 1-TAP CONNECT)           -->
   <!-- ===================================================================== -->
   <div id="modal-airplay-note" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="max-w-lg w-full rounded-2xl bg-slate-900 border border-slate-700 p-5 sm:p-6 shadow-2xl space-y-4">
       <div class="flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300 font-bold">i</span>
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-xl bg-teal-500/20 border border-teal-400/35 flex items-center justify-center text-teal-300 font-black">i</span>
           <div>
-            <h2 class="text-base sm:text-lg font-extrabold text-white">AirPlay Note — 1-Tap iPad Connect</h2>
-            <p class="text-[11px] font-bold text-sky-400">HALLO ROOM by T.Koi</p>
+            <h2 class="text-base sm:text-lg font-extrabold text-white">AirPlay Note — Why QR &amp; 1-Tap Connect</h2>
+            <p class="text-[11px] font-bold text-teal-400">HALLO ROOM by T.Koi</p>
           </div>
         </div>
         <button id="btn-close-airplay-modal" type="button" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold">✕</button>
@@ -615,22 +743,21 @@
 
       <div class="rounded-xl bg-slate-950 border border-slate-800 p-4 text-xs sm:text-sm text-slate-300 space-y-2.5 leading-relaxed">
         <p>
-          <strong class="text-white">Why doesn't HALLO ROOM appear inside iPad Control Center → AirPlay?</strong><br />
-          Apple restricts the native Control Center AirPlay list to hardware/native receivers (Apple TV, Mac, or installed receiver software)—web browsers cannot register as native AirPlay targets.
+          <strong class="text-white">Why doesn't HALLO ROOM show up inside iPad Control Center → AirPlay?</strong><br />
+          Apple locks the native Control Center AirPlay receiver list to hardware Apple TVs and native macOS/Windows receiver apps—web browsers cannot broadcast Bonjour/mDNS AirPlay services.
         </p>
         <p>
-          <strong class="text-[#34d399]">Fastest 1-Tap Classroom Workflow:</strong>
+          <strong class="text-[#2dd4bf]">How HALLO ROOM Delivers Faster 4-iPad Classroom Mirroring:</strong>
         </p>
         <ol class="list-decimal list-inside space-y-1.5 text-slate-200">
-          <li>Lock your daily room name (e.g. <code class="px-1.5 py-0.5 rounded bg-slate-800 text-sky-300 font-mono">HALLO</code>) on the Classroom Board.</li>
-          <li>Point each student iPad camera at its slot's <strong class="text-white">QR Code</strong> (iPad 1–4).</li>
-          <li>In Safari, tap <strong class="text-white">Share → Add to Home Screen</strong> once per iPad.</li>
-          <li>Every day after that: students just tap the <strong class="text-white">HALLO ROOM</strong> icon and press the giant <strong class="text-[#34d399]">TAP TO MIRROR SCREEN</strong> button!</li>
+          <li>Native AirPlay only shows <strong>1 iPad at a time</strong>; HALLO ROOM streams <strong>4 horizontal iPads</strong> side-by-side over direct LAN WebRTC with hardware H.264 + zero receiver buffering.</li>
+          <li>Point each student iPad camera at its slot's <strong class="text-white">QR Code</strong> (Slots 1–4) to jump directly to the 1-Tap screen with Room, Slot, and Latency Mode pre-filled.</li>
+          <li>Tap Safari <strong class="text-white">Share → Add to Home Screen</strong> once per iPad so students connect in one tap every class.</li>
         </ol>
       </div>
 
       <div class="flex justify-end">
-        <button id="btn-ok-airplay-modal" type="button" class="px-5 py-2.5 rounded-xl bg-[#38bdf8] hover:bg-sky-300 text-slate-950 font-extrabold text-xs sm:text-sm">
+        <button id="btn-ok-airplay-modal" type="button" class="px-5 py-2.5 rounded-xl bg-[#2dd4bf] hover:bg-teal-300 text-slate-950 font-extrabold text-xs sm:text-sm">
           Got It!
         </button>
       </div>
@@ -645,37 +772,73 @@
       'use strict';
 
       /* ------------------------------------------------------------------- */
-      /* 1. CONSTANTS & CONFIGURATION                                        */
+      /* 1. CONSTANTS, SLOT PALETTE & ULTRA-LOW-LATENCY PROFILES             */
       /* ------------------------------------------------------------------- */
 
       const STORAGE_LOCKED_ROOM_KEY = 'halloroom_locked_code';
+      const DEFAULT_ROOM_CODE = 'HALLO';
 
-      // Vibrant 4-slot color coding for classroom TV legibility
       const SLOTS = {
-        1: { id: 1, hex: '#38bdf8', label: 'iPad 1' }, // Sky
-        2: { id: 2, hex: '#34d399', label: 'iPad 2' }, // Emerald
-        3: { id: 3, hex: '#fbbf24', label: 'iPad 3' }, // Amber
+        1: { id: 1, hex: '#2dd4bf', label: 'iPad 1' }, // Teal
+        2: { id: 2, hex: '#38bdf8', label: 'iPad 2' }, // Cyan/Sky
+        3: { id: 3, hex: '#fbbf24', label: 'iPad 3' }, // Warm Amber
         4: { id: 4, hex: '#f472b6', label: 'iPad 4' }  // Pink
       };
 
-      // Unambiguous room code alphabet (no 0, O, 1, I, L)
-      const ROOM_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-
-      // Horizontal 4:3 iPad capture settings + school Wi-Fi friendly bitrate cap
-      const HORIZONTAL_CAPTURE = {
-        width: 1280,
-        height: 960,
-        fps: 20,
-        maxBitrate: 1200000 // ~1.2 Mbps per iPad
+      // UPGRADE 1: 3 Tuned WebRTC Latency Profiles (all horizontal 4:3)
+      const LATENCY_MODES = {
+        ultra: {
+          key: 'ultra',
+          label: 'Ultra-Low',
+          shortLabel: '⚡ Ultra-Low',
+          width: 960,
+          height: 720,
+          fps: 30,
+          maxBitrate: 950000, // ~950 kbps
+          contentHint: 'motion',
+          degradationPreference: 'maintain-framerate'
+        },
+        balanced: {
+          key: 'balanced',
+          label: 'Balanced',
+          shortLabel: 'Balanced',
+          width: 1024,
+          height: 768,
+          fps: 24,
+          maxBitrate: 1400000, // ~1.4 Mbps
+          contentHint: 'motion',
+          degradationPreference: 'maintain-framerate'
+        },
+        sharp: {
+          key: 'sharp',
+          label: 'Sharp Code',
+          shortLabel: 'Sharp Code',
+          width: 1280,
+          height: 960,
+          fps: 18,
+          maxBitrate: 2000000, // ~2.0 Mbps
+          contentHint: 'detail',
+          degradationPreference: 'maintain-resolution'
+        }
       };
 
+      // UPGRADE 2: Optical Zoom Bounds
+      const ZOOM_MIN = 0.5;
+      const ZOOM_MAX = 3.5;
+      const ZOOM_STEP = 0.25;
+
+      const ROOM_ALPHABET = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+      // Direct LAN + fast public STUN so local Wi-Fi devices form direct host-candidate links fast
       const PEER_CONFIG = {
         debug: 1,
         config: {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
-            { urls: 'stun:stun1.l.google.com:19302' }
-          ]
+            { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:stun2.l.google.com:19302' }
+          ],
+          iceCandidatePoolSize: 2
         }
       };
 
@@ -688,15 +851,17 @@
 
         viewer: {
           peer: null,
-          roomCode: '',
+          roomCode: DEFAULT_ROOM_CODE,
           roomLocked: false,
-          layoutMode: '2x2',   // '2x2' | 'auto'
-          fitMode: 'cover',    // 'cover' (Fill Box default) | 'contain' (Full Fit)
-          spotlightSlot: null, // null | 1..4
+          latencyMode: 'ultra', // 'ultra' | 'balanced' | 'sharp'
+          layoutMode: '2x2',    // '2x2' | 'auto'
+          fitMode: 'cover',     // 'cover' (Fill Box) | 'contain' (Full Fit)
+          spotlightSlot: null,  // null | 1..4
           topbarHidden: false,
           demoActive: false,
           demoRafId: null,
           demoCanvases: {},
+          statsTimerId: null,
           dataConnsByPeer: new Map(),
           slots: {
             1: createEmptySlot(1),
@@ -711,8 +876,9 @@
           call: null,
           dataConn: null,
           localStream: null,
-          roomCode: '',
+          roomCode: DEFAULT_ROOM_CODE,
           slot: 1,
+          mode: 'ultra',
           studentName: '',
           isStreaming: false,
           fromDirectLink: false,
@@ -730,13 +896,20 @@
           peerId: null,
           stream: null,
           name: `iPad ${slotNum}`,
-          rotation: 0, // 0, 90, 180, 270
+          // Visual transform state (UPGRADE 2)
+          zoom: 1.0,
+          panX: 0,
+          panY: 0,
+          rotation: 0,
+          fitOverride: null, // null -> inherits global fitMode, else 'cover' | 'contain'
+          // Telemetry state (UPGRADE 1)
           width: 0,
           height: 0,
           fps: 0,
-          frameCount: 0,
-          lastFpsCheck: 0,
-          vfcId: null,
+          latencyMs: null,
+          codec: '',
+          prevJitterDelay: 0,
+          prevJitterCount: 0,
           disconnectTimer: null
         };
       }
@@ -761,7 +934,7 @@
         btnLaunchViewer: document.getElementById('btn-launch-viewer'),
         btnLaunchSender: document.getElementById('btn-launch-sender'),
 
-        // Viewer
+        // Viewer Header
         viewerTopbar: document.getElementById('viewer-topbar'),
         btnShowTopbar: document.getElementById('btn-show-topbar'),
         floatingRoomCode: document.getElementById('floating-room-code'),
@@ -771,16 +944,32 @@
         viewerLiveBadge: document.getElementById('viewer-live-badge'),
         btnCopyRoom: document.getElementById('btn-copy-room'),
         btnEditRoom: document.getElementById('btn-edit-room'),
-        btnLayout2x2: document.getElementById('btn-layout-2x2'),
-        btnLayoutAuto: document.getElementById('btn-layout-auto'),
+        btnModeUltra: document.getElementById('btn-mode-ultra'),
+        btnModeBalanced: document.getElementById('btn-mode-balanced'),
+        btnModeSharp: document.getElementById('btn-mode-sharp'),
         btnFitCover: document.getElementById('btn-fit-cover'),
         btnFitContain: document.getElementById('btn-fit-contain'),
+        btnLayout2x2: document.getElementById('btn-layout-2x2'),
+        btnLayoutAuto: document.getElementById('btn-layout-auto'),
+        btnResetAllZoom: document.getElementById('btn-reset-all-zoom'),
         btnToggleDemo: document.getElementById('btn-toggle-demo'),
         demoBtnLabel: document.getElementById('demo-btn-label'),
         btnFullscreen: document.getElementById('btn-fullscreen'),
         btnHideTopbar: document.getElementById('btn-hide-topbar'),
         btnViewerExit: document.getElementById('btn-viewer-exit'),
         viewerGrid: document.getElementById('viewer-grid'),
+
+        // Spotlight Header
+        spotlightBar: document.getElementById('spotlight-bar'),
+        btnSpotlightBack: document.getElementById('btn-spotlight-back'),
+        spotlightSwitcher: document.getElementById('spotlight-switcher'),
+        spotlightTelemetry: document.getElementById('spotlight-telemetry'),
+        btnSpotZoomOut: document.getElementById('btn-spot-zoom-out'),
+        spotZoomSlider: document.getElementById('spot-zoom-slider'),
+        btnSpotZoomIn: document.getElementById('btn-spot-zoom-in'),
+        btnSpotZoomReset: document.getElementById('btn-spot-zoom-reset'),
+        btnSpotFit: document.getElementById('btn-spot-fit'),
+        btnSpotRotate: document.getElementById('btn-spot-rotate'),
 
         // Sender
         portraitWarningBanner: document.getElementById('portrait-warning-banner'),
@@ -790,11 +979,13 @@
         senderSlotBadge: document.getElementById('sender-slot-badge'),
         senderReadyHeading: document.getElementById('sender-ready-heading'),
         senderRoomDisplay: document.getElementById('sender-room-display'),
+        senderModeSummary: document.getElementById('sender-mode-summary'),
         btnToggleSenderSettings: document.getElementById('btn-toggle-sender-settings'),
         senderSettingsPanel: document.getElementById('sender-settings-panel'),
         inputRoomCode: document.getElementById('input-room-code'),
         inputStudentName: document.getElementById('input-student-name'),
         senderSlotPickBtns: Array.from(document.querySelectorAll('.sender-slot-pick')),
+        senderModePickBtns: Array.from(document.querySelectorAll('.sender-mode-pick')),
         senderErrorBox: document.getElementById('sender-error-box'),
         senderErrorTitle: document.getElementById('sender-error-title'),
         senderErrorMsg: document.getElementById('sender-error-msg'),
@@ -804,6 +995,7 @@
         senderLivePanel: document.getElementById('sender-live-panel'),
         senderLocalVideo: document.getElementById('sender-local-video'),
         senderLiveStats: document.getElementById('sender-live-stats'),
+        senderLiveModeBadge: document.getElementById('sender-live-mode-badge'),
         btnStopMirror: document.getElementById('btn-stop-mirror'),
 
         // Modals
@@ -821,18 +1013,18 @@
       };
 
       /* ------------------------------------------------------------------- */
-      /* 4. HELPERS (Toasts, Clipboard, Room Codes, URLs, Capabilities)      */
+      /* 4. CORE UTILITIES                                                   */
       /* ------------------------------------------------------------------- */
 
       function showToast(message, type = 'info') {
         const styles = {
-          info: 'bg-slate-900 border-sky-500/45 text-slate-100',
+          info: 'bg-slate-900 border-teal-500/45 text-slate-100',
           success: 'bg-slate-900 border-emerald-500/45 text-emerald-100',
           warn: 'bg-slate-900 border-amber-400/50 text-amber-100',
           error: 'bg-slate-900 border-rose-500/55 text-rose-100'
         };
         const dots = {
-          info: 'bg-[#38bdf8]',
+          info: 'bg-[#2dd4bf]',
           success: 'bg-[#34d399]',
           warn: 'bg-[#fbbf24]',
           error: 'bg-rose-500'
@@ -847,7 +1039,7 @@
         setTimeout(() => {
           el.classList.add('opacity-0', 'translate-y-2');
           setTimeout(() => el.remove(), 220);
-        }, 3200);
+        }, 3000);
       }
 
       function escapeHtml(str) {
@@ -859,9 +1051,10 @@
           .replace(/'/g, '&#39;');
       }
 
-      /**
-       * Safe iFrame/Safari clipboard copy via document.execCommand('copy').
-       */
+      function clamp(val, min, max) {
+        return Math.min(max, Math.max(min, val));
+      }
+
       function copyTextToClipboard(text) {
         try {
           const ta = document.createElement('textarea');
@@ -887,6 +1080,11 @@
         return String(raw || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 12);
       }
 
+      function sanitizeLatencyMode(raw) {
+        const k = String(raw || '').toLowerCase();
+        return LATENCY_MODES[k] ? k : 'ultra';
+      }
+
       function generateRandomRoomCode() {
         let code = '';
         for (let i = 0; i < 4; i++) {
@@ -899,34 +1097,32 @@
         return `halloroom-${sanitizeRoomCode(roomCode).toLowerCase()}`;
       }
 
-      /**
-       * Build direct join link for a Room or specific Slot.
-       * Gracefully handles both Cloudflare Pages HTTPS URLs and local/preview contexts.
-       */
-      function buildJoinUrl(roomCode, slotNum = null) {
+      function buildJoinUrl(roomCode, slotNum = null, mode = state.viewer.latencyMode) {
         const cleanRoom = sanitizeRoomCode(roomCode);
-        const query = slotNum
-          ? `?room=${encodeURIComponent(cleanRoom)}&slot=${slotNum}`
-          : `?room=${encodeURIComponent(cleanRoom)}`;
+        const cleanMode = sanitizeLatencyMode(mode);
+        const params = new URLSearchParams();
+        params.set('role', 'sender');
+        params.set('room', cleanRoom);
+        if (slotNum) params.set('slot', String(slotNum));
+        params.set('mode', cleanMode);
 
         try {
           if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-            const origin = window.location.origin;
-            const pathname = window.location.pathname || '/';
-            return `${origin}${pathname}${query}`;
+            return `${window.location.origin}${window.location.pathname || '/'}?${params.toString()}`;
           }
         } catch (_) {}
-        return `https://halloroom.pages.dev/${query}`;
+        return `https://halloroom.pages.dev/?${params.toString()}`;
       }
 
       function buildShortDisplayUrl(roomCode, slotNum) {
         const cleanRoom = sanitizeRoomCode(roomCode);
+        const cleanMode = sanitizeLatencyMode(state.viewer.latencyMode);
         try {
           if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-            return `${window.location.host}${window.location.pathname}?room=${cleanRoom}&slot=${slotNum}`;
+            return `${window.location.host}${window.location.pathname}?role=sender&room=${cleanRoom}&slot=${slotNum}&mode=${cleanMode}`;
           }
         } catch (_) {}
-        return `?room=${cleanRoom}&slot=${slotNum}`;
+        return `?role=sender&room=${cleanRoom}&slot=${slotNum}&mode=${cleanMode}`;
       }
 
       function getSavedLockedRoom() {
@@ -955,11 +1151,18 @@
         const ua = navigator.userAgent || '';
         const isIPad = /iPad/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-        dom.capPlatformTag.textContent = isIPad ? 'iPad Detected' : 'Desktop / TV / Tablet';
+        let h264Ready = false;
+        try {
+          if (typeof RTCRtpSender !== 'undefined' && typeof RTCRtpSender.getCapabilities === 'function') {
+            const caps = RTCRtpSender.getCapabilities('video');
+            h264Ready = Boolean(caps && caps.codecs && caps.codecs.some((c) => /h264/i.test(c.mimeType)));
+          }
+        } catch (_) {}
 
+        dom.capPlatformTag.textContent = isIPad ? 'iPad Detected (Apple Silicon Ready)' : 'Desktop / TV / Display';
         setCapBadge(dom.capHttps, isSecure ? 'ok' : 'warn', isSecure ? 'Secure Context Ready' : 'Requires HTTPS on iPad');
-        setCapBadge(dom.capWebrtc, hasWebRTC ? 'ok' : 'err', hasWebRTC ? 'Ready for 4× Streams' : 'PeerJS / WebRTC Missing');
-        setCapBadge(dom.capDisplay, hasDisplay ? 'ok' : 'warn', hasDisplay ? 'Screen Mirror Supported' : 'Use Camera Fallback');
+        setCapBadge(dom.capWebrtc, hasWebRTC ? 'ok' : 'err', hasWebRTC ? (h264Ready ? 'H.264 Hardware Preferred' : 'WebRTC Ready') : 'WebRTC / PeerJS Missing');
+        setCapBadge(dom.capDisplay, hasDisplay ? 'ok' : 'warn', hasDisplay ? 'getDisplayMedia() Ready' : 'Use Camera Fallback');
       }
 
       function setCapBadge(el, status, detail) {
@@ -976,13 +1179,706 @@
         dom.viewHome.classList.toggle('hidden', target !== 'home');
         dom.viewViewer.classList.toggle('hidden', target !== 'viewer');
         dom.viewSender.classList.toggle('hidden', target !== 'sender');
-        if (target === 'sender') {
-          checkSenderOrientation();
+        if (target === 'sender') checkSenderOrientation();
+      }
+
+      /* ------------------------------------------------------------------- */
+      /* 5. UPGRADE 1: ULTRA-LOW-LATENCY WEBRTC ENGINE HELPERS               */
+      /* ------------------------------------------------------------------- */
+
+      /**
+       * Prioritize Hardware-Accelerated H.264 (especially Constrained Baseline 42e01f for Apple/iPadOS)
+       * in the WebRTC SDP video media section while preserving matched RTX payloads.
+       */
+      function preferH264InSdp(sdp) {
+        if (!sdp || typeof sdp !== 'string') return sdp;
+        try {
+          const lineEnding = sdp.includes('\r\n') ? '\r\n' : '\n';
+          const lines = sdp.split(lineEnding);
+          const mVideoIdx = lines.findIndex((l) => l.startsWith('m=video '));
+          if (mVideoIdx === -1) return sdp;
+
+          // Locate end of video section
+          let videoEnd = lines.length;
+          for (let i = mVideoIdx + 1; i < lines.length; i++) {
+            if (lines[i].startsWith('m=')) {
+              videoEnd = i;
+              break;
+            }
+          }
+
+          const rtpmap = new Map(); // pt -> codecName
+          const fmtp = new Map();   // pt -> params
+          const rtxApt = new Map(); // rtxPt -> associatedPt
+
+          for (let i = mVideoIdx + 1; i < videoEnd; i++) {
+            const line = lines[i];
+            const rm = line.match(/^a=rtpmap:(\d+)\s+([^/\s]+)/i);
+            if (rm) rtpmap.set(rm[1], rm[2].toUpperCase());
+
+            const fm = line.match(/^a=fmtp:(\d+)\s+(.+)/i);
+            if (fm) {
+              fmtp.set(fm[1], fm[2]);
+              const aptMatch = fm[2].match(/apt=(\d+)/i);
+              if (aptMatch) rtxApt.set(fm[1], aptMatch[1]);
+            }
+          }
+
+          const mParts = lines[mVideoIdx].split(' ');
+          const header = mParts.slice(0, 3);
+          const payloads = mParts.slice(3);
+
+          const h264Baseline = [];
+          const h264Other = [];
+          const others = [];
+
+          // Helper to append a codec payload + its associated RTX payload right after it
+          const added = new Set();
+          const pushWithRtx = (targetArr, pt) => {
+            if (added.has(pt)) return;
+            targetArr.push(pt);
+            added.add(pt);
+            for (const [rtxPt, apt] of rtxApt.entries()) {
+              if (apt === pt && payloads.includes(rtxPt) && !added.has(rtxPt)) {
+                targetArr.push(rtxPt);
+                added.add(rtxPt);
+              }
+            }
+          };
+
+          payloads.forEach((pt) => {
+            if (rtpmap.get(pt) === 'H264') {
+              const params = (fmtp.get(pt) || '').toLowerCase();
+              if (params.includes('42e01f') || params.includes('42001f')) {
+                pushWithRtx(h264Baseline, pt);
+              } else {
+                pushWithRtx(h264Other, pt);
+              }
+            }
+          });
+
+          payloads.forEach((pt) => {
+            if (!added.has(pt)) {
+              others.push(pt);
+              added.add(pt);
+            }
+          });
+
+          if (h264Baseline.length === 0 && h264Other.length === 0) {
+            return sdp;
+          }
+
+          lines[mVideoIdx] = [...header, ...h264Baseline, ...h264Other, ...others].join(' ');
+          return lines.join(lineEnding);
+        } catch (err) {
+          console.warn('[SDP] H.264 transform skipped:', err);
+          return sdp;
+        }
+      }
+
+      /**
+       * Also apply RTCRtpTransceiver.setCodecPreferences() where supported to reinforce H.264 priority.
+       */
+      function applyH264TransceiverPreference(pc) {
+        try {
+          if (!pc || typeof pc.getTransceivers !== 'function') return;
+          if (typeof RTCRtpSender === 'undefined' || typeof RTCRtpSender.getCapabilities !== 'function') return;
+          const caps = RTCRtpSender.getCapabilities('video');
+          if (!caps || !caps.codecs || !caps.codecs.length) return;
+
+          const h264Baseline = [];
+          const h264Other = [];
+          const rest = [];
+
+          caps.codecs.forEach((c) => {
+            if (/^video\/h264$/i.test(c.mimeType)) {
+              const fmtp = (c.sdpFmtpLine || '').toLowerCase();
+              if (fmtp.includes('42e01f') || fmtp.includes('42001f')) {
+                h264Baseline.push(c);
+              } else {
+                h264Other.push(c);
+              }
+            } else {
+              rest.push(c);
+            }
+          });
+
+          const ordered = [...h264Baseline, ...h264Other, ...rest];
+          pc.getTransceivers().forEach((transceiver) => {
+            const kind = (transceiver.sender && transceiver.sender.track && transceiver.sender.track.kind)
+              || (transceiver.receiver && transceiver.receiver.track && transceiver.receiver.track.kind);
+            if ((kind === 'video' || !kind) && typeof transceiver.setCodecPreferences === 'function') {
+              try { transceiver.setCodecPreferences(ordered); } catch (_) {}
+            }
+          });
+        } catch (_) {}
+      }
+
+      /**
+       * Zero-Buffer Receiver Pipeline: sets jitterBufferTarget = 0 and playoutDelayHint = 0
+       * on every RTCRtpReceiver immediately and on future 'track' events to eliminate jitter lag.
+       */
+      function applyZeroBufferToReceiver(receiver) {
+        if (!receiver) return;
+        try {
+          if ('jitterBufferTarget' in receiver) {
+            receiver.jitterBufferTarget = 0;
+          }
+        } catch (_) {}
+        try {
+          if ('playoutDelayHint' in receiver) {
+            receiver.playoutDelayHint = 0;
+          }
+        } catch (_) {}
+      }
+
+      function applyZeroBufferToPC(pc) {
+        if (!pc) return;
+        try {
+          if (typeof pc.getReceivers === 'function') {
+            pc.getReceivers().forEach(applyZeroBufferToReceiver);
+          }
+          pc.addEventListener('track', (ev) => {
+            if (ev && ev.receiver) applyZeroBufferToReceiver(ev.receiver);
+          });
+        } catch (_) {}
+      }
+
+      /**
+       * Dynamically tune Sender RTCRtpSender parameters (maxBitrate, maxFramerate, degradationPreference)
+       * and track.contentHint without disconnecting the stream.
+       */
+      function applySenderLatencyProfile(pc, stream, modeKey) {
+        const cfg = LATENCY_MODES[sanitizeLatencyMode(modeKey)];
+        try {
+          const videoTrack = stream && stream.getVideoTracks ? stream.getVideoTracks()[0] : null;
+          if (videoTrack) {
+            if ('contentHint' in videoTrack) {
+              videoTrack.contentHint = cfg.contentHint;
+            }
+            if (typeof videoTrack.applyConstraints === 'function') {
+              videoTrack.applyConstraints({
+                width: { ideal: cfg.width },
+                height: { ideal: cfg.height },
+                frameRate: { ideal: cfg.fps }
+              }).catch(() => {});
+            }
+          }
+        } catch (_) {}
+
+        try {
+          if (!pc || typeof pc.getSenders !== 'function') return;
+          const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
+          if (!sender || typeof sender.getParameters !== 'function') return;
+
+          const params = sender.getParameters();
+          if (!params.encodings || params.encodings.length === 0) {
+            params.encodings = [{}];
+          }
+          params.encodings[0].maxBitrate = cfg.maxBitrate;
+          params.encodings[0].maxFramerate = cfg.fps;
+          params.degradationPreference = cfg.degradationPreference;
+
+          sender.setParameters(params).catch(() => {
+            // Fallback without degradationPreference if browser rejects that field
+            delete params.degradationPreference;
+            sender.setParameters(params).catch(() => {});
+          });
+        } catch (err) {
+          console.warn('[Sender] Encoding parameter update skipped:', err);
+        }
+      }
+
+      /**
+       * 1-second pc.getStats() telemetry loop for all 4 slots (real ms latency, FPS, and active Codec).
+       */
+      function startViewerStatsPolling() {
+        stopViewerStatsPolling();
+        state.viewer.statsTimerId = setInterval(() => {
+          if (state.view !== 'viewer') return;
+
+          for (let i = 1; i <= 4; i++) {
+            const s = state.viewer.slots[i];
+            if (!s.active) continue;
+
+            if (s.isDemo) {
+              // Simulated crisp local canvas telemetry (<15ms · 30fps · LOCAL)
+              const simMs = 10 + Math.floor(Math.random() * 5);
+              s.latencyMs = simMs;
+              s.fps = 30;
+              s.codec = 'LOCAL';
+              updateSlotTelemetryBadge(i);
+              continue;
+            }
+
+            const pc = s.call && s.call.peerConnection;
+            if (!pc || typeof pc.getStats !== 'function') continue;
+
+            pc.getStats().then((report) => {
+              if (!state.viewer.slots[i].active) return;
+
+              let inboundVideo = null;
+              let rttMs = 0;
+
+              report.forEach((stat) => {
+                if (stat.type === 'inbound-rtp' && (stat.kind === 'video' || stat.mediaType === 'video')) {
+                  inboundVideo = stat;
+                } else if (
+                  stat.type === 'candidate-pair' &&
+                  (stat.state === 'succeeded' || stat.nominated) &&
+                  typeof stat.currentRoundTripTime === 'number'
+                ) {
+                  rttMs = stat.currentRoundTripTime * 1000;
+                }
+              });
+
+              if (inboundVideo) {
+                // Compute instantaneous jitter buffer delay (ms)
+                let jitterMs = 0;
+                const curDelay = inboundVideo.jitterBufferDelay || 0;
+                const curCount = inboundVideo.jitterBufferEmittedCount || 0;
+                const dDelay = curDelay - s.prevJitterDelay;
+                const dCount = curCount - s.prevJitterCount;
+
+                if (dCount > 0 && dDelay >= 0) {
+                  jitterMs = (dDelay / dCount) * 1000;
+                } else if (curCount > 0) {
+                  jitterMs = (curDelay / curCount) * 1000;
+                }
+                s.prevJitterDelay = curDelay;
+                s.prevJitterCount = curCount;
+
+                // One-way network transit (~RTT/2) + receiver jitter buffer delay
+                const totalMs = Math.max(1, Math.round(jitterMs + rttMs * 0.5));
+                s.latencyMs = totalMs;
+
+                if (typeof inboundVideo.framesPerSecond === 'number') {
+                  s.fps = Math.round(inboundVideo.framesPerSecond);
+                }
+                if (inboundVideo.frameWidth && inboundVideo.frameHeight) {
+                  s.width = inboundVideo.frameWidth;
+                  s.height = inboundVideo.frameHeight;
+                }
+
+                // Resolve Codec Name (e.g. H264, VP8, VP9)
+                if (inboundVideo.codecId && report.has(inboundVideo.codecId)) {
+                  const codecStat = report.get(inboundVideo.codecId);
+                  if (codecStat && codecStat.mimeType) {
+                    s.codec = codecStat.mimeType.replace(/^video\//i, '').toUpperCase();
+                  }
+                }
+              }
+
+              updateSlotTelemetryBadge(i);
+            }).catch(() => {});
+          }
+        }, 1000);
+      }
+
+      function stopViewerStatsPolling() {
+        if (state.viewer.statsTimerId) {
+          clearInterval(state.viewer.statsTimerId);
+          state.viewer.statsTimerId = null;
+        }
+      }
+
+      function formatTelemetryText(s) {
+        const msStr = s.isDemo
+          ? `<15ms`
+          : (s.latencyMs !== null ? `${s.latencyMs}ms` : '--ms');
+        const fpsStr = s.fps > 0 ? `${s.fps}fps` : '--fps';
+        const codecStr = s.codec || 'WEBRTC';
+        return `${msStr} · ${fpsStr} · ${codecStr}`;
+      }
+
+      function getLatencyColorClasses(ms) {
+        if (ms === null || ms < 80) {
+          return 'bg-emerald-500/20 border-emerald-400/45 text-emerald-300';
+        }
+        if (ms <= 160) {
+          return 'bg-amber-500/20 border-amber-400/45 text-amber-300';
+        }
+        return 'bg-rose-500/20 border-rose-400/50 text-rose-300';
+      }
+
+      function updateSlotTelemetryBadge(slotNum) {
+        const s = state.viewer.slots[slotNum];
+        const el = document.getElementById(`slot-telemetry-${slotNum}`);
+        const text = formatTelemetryText(s);
+        const colorCls = getLatencyColorClasses(s.latencyMs);
+
+        if (el) {
+          el.textContent = text;
+          el.className = `font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${colorCls}`;
+        }
+
+        if (state.viewer.spotlightSlot === slotNum && dom.spotlightTelemetry) {
+          dom.spotlightTelemetry.textContent = text;
+          dom.spotlightTelemetry.className = `font-mono text-[11px] font-bold px-2.5 py-1 rounded-lg border shrink-0 ${colorCls}`;
         }
       }
 
       /* ------------------------------------------------------------------- */
-      /* 5. VIEWER MODE (2x2 HORIZONTAL IPAD BOARD + QR CODES)               */
+      /* 6. UPGRADE 2: OPTICAL ZOOM (50%-350%), DRAG-TO-PAN, PINCH & DBLTAP  */
+      /* ------------------------------------------------------------------- */
+
+      function getEffectiveFitMode(slotNum) {
+        const s = state.viewer.slots[slotNum];
+        return s.fitOverride || state.viewer.fitMode;
+      }
+
+      function clampPanForSlot(slotNum, zoom, panX, panY) {
+        if (zoom <= 1.001) {
+          return { panX: 0, panY: 0 };
+        }
+        const stageEl = document.getElementById(`slot-stage-${slotNum}`);
+        if (!stageEl) return { panX: 0, panY: 0 };
+
+        const w = stageEl.clientWidth || 1;
+        const h = stageEl.clientHeight || 1;
+        const maxX = Math.max(0, ((w * zoom) - w) / 2);
+        const maxY = Math.max(0, ((h * zoom) - h) / 2);
+        return {
+          panX: clamp(panX, -maxX, maxX),
+          panY: clamp(panY, -maxY, maxY)
+        };
+      }
+
+      /**
+       * Apply GPU-accelerated transform: translate3d(panX, panY, 0) scale(zoom) rotate(rotDeg)
+       * along with Fit/Fill class and rotated dimensions.
+       */
+      function applySlotTransform(slotNum, { smooth = false } = {}) {
+        const s = state.viewer.slots[slotNum];
+        const tile = document.getElementById(`slot-tile-${slotNum}`);
+        const stageEl = document.getElementById(`slot-stage-${slotNum}`);
+        const videoEl = document.getElementById(`slot-video-${slotNum}`);
+        if (!stageEl || !videoEl || !s.active) return;
+
+        // Clamp zoom & pan safely
+        s.zoom = clamp(Number(s.zoom) || 1, ZOOM_MIN, ZOOM_MAX);
+        const clamped = clampPanForSlot(slotNum, s.zoom, s.panX, s.panY);
+        s.panX = clamped.panX;
+        s.panY = clamped.panY;
+
+        // Effective Fill Box vs Full Fit
+        const fit = getEffectiveFitMode(slotNum);
+        videoEl.classList.toggle('object-cover', fit === 'cover');
+        videoEl.classList.toggle('object-contain', fit === 'contain');
+
+        // Smooth transition for button clicks / double-tap; instant 0ms during drag/pinch
+        videoEl.classList.toggle('zoom-smooth', smooth);
+
+        // Handle 90° / 270° rotated sizing so full rotated iPad fits its container cleanly
+        const rot = ((s.rotation % 360) + 360) % 360;
+        if (rot === 90 || rot === 270) {
+          const w = stageEl.clientWidth;
+          const h = stageEl.clientHeight;
+          videoEl.style.width = `${h}px`;
+          videoEl.style.height = `${w}px`;
+          videoEl.style.maxWidth = 'none';
+          videoEl.style.maxHeight = 'none';
+        } else {
+          videoEl.style.width = '100%';
+          videoEl.style.height = '100%';
+          videoEl.style.maxWidth = '100%';
+          videoEl.style.maxHeight = '100%';
+        }
+
+        videoEl.style.transform = `translate3d(${s.panX.toFixed(1)}px, ${s.panY.toFixed(1)}px, 0) scale(${s.zoom.toFixed(4)}) rotate(${rot}deg)`;
+
+        // Cursor & zoomed state badge
+        const isZoomedOrPanned = Math.abs(s.zoom - 1) > 0.005 || Math.abs(s.panX) > 0.5 || Math.abs(s.panY) > 0.5;
+        if (tile) tile.classList.toggle('is-zoomed', isZoomedOrPanned);
+
+        stageEl.style.cursor = s.zoom > 1.005 ? 'grab' : 'default';
+
+        // Sync per-slot Zoom Percentage button, slider, and fit label
+        const pct = Math.round(s.zoom * 100);
+        const pctBtn = document.getElementById(`slot-zoom-pct-${slotNum}`);
+        const sliderEl = document.getElementById(`slot-zoom-slider-${slotNum}`);
+        const fitBtn = document.getElementById(`slot-fit-btn-${slotNum}`);
+        const rotLabel = document.getElementById(`slot-rot-label-${slotNum}`);
+
+        if (pctBtn) {
+          pctBtn.textContent = `${pct}%`;
+          pctBtn.classList.toggle('text-amber-300', isZoomedOrPanned);
+          pctBtn.classList.toggle('text-teal-300', !isZoomedOrPanned);
+        }
+        if (sliderEl) sliderEl.value = String(pct);
+        if (fitBtn) fitBtn.textContent = fit === 'cover' ? 'Fill' : 'Fit';
+        if (rotLabel) rotLabel.textContent = rot === 0 ? '90°' : `${rot}°`;
+
+        // Sync Spotlight Bar controls if this slot is currently Spotlighted
+        if (state.viewer.spotlightSlot === slotNum) {
+          syncSpotlightControlsForSlot(slotNum);
+        }
+
+        updateResetAllZoomButtonUI();
+      }
+
+      /**
+       * Zoom a slot smoothly toward a specific screen point (clientX, clientY),
+       * or around the center if no anchor coordinates are passed.
+       */
+      function setSlotZoom(slotNum, targetZoom, { anchorX = null, anchorY = null, smooth = true } = {}) {
+        const s = state.viewer.slots[slotNum];
+        if (!s || !s.active) return;
+
+        const oldZ = s.zoom;
+        const newZ = clamp(Math.round(targetZoom * 100) / 100, ZOOM_MIN, ZOOM_MAX);
+
+        if (newZ <= 1.001) {
+          s.zoom = newZ;
+          s.panX = 0;
+          s.panY = 0;
+        } else if (anchorX !== null && anchorY !== null) {
+          const stageEl = document.getElementById(`slot-stage-${slotNum}`);
+          if (stageEl) {
+            const rect = stageEl.getBoundingClientRect();
+            const dx = anchorX - (rect.left + rect.width / 2);
+            const dy = anchorY - (rect.top + rect.height / 2);
+            const ratio = newZ / oldZ;
+            s.panX = dx - (dx - s.panX) * ratio;
+            s.panY = dy - (dy - s.panY) * ratio;
+          }
+          s.zoom = newZ;
+        } else {
+          // Scale existing pan proportionally around center
+          const ratio = newZ / oldZ;
+          s.panX *= ratio;
+          s.panY *= ratio;
+          s.zoom = newZ;
+        }
+
+        applySlotTransform(slotNum, { smooth });
+      }
+
+      function stepSlotZoom(slotNum, delta) {
+        const s = state.viewer.slots[slotNum];
+        if (!s || !s.active) return;
+        const next = Math.round((s.zoom + delta) / 0.05) * 0.05;
+        setSlotZoom(slotNum, next, { smooth: true });
+      }
+
+      function resetSlotZoom(slotNum) {
+        const s = state.viewer.slots[slotNum];
+        if (!s || !s.active) return;
+        s.zoom = 1.0;
+        s.panX = 0;
+        s.panY = 0;
+        applySlotTransform(slotNum, { smooth: true });
+      }
+
+      function resetAllSlotsZoom() {
+        let changed = false;
+        for (let i = 1; i <= 4; i++) {
+          const s = state.viewer.slots[i];
+          if (s.active && (Math.abs(s.zoom - 1) > 0.005 || Math.abs(s.panX) > 0.5 || Math.abs(s.panY) > 0.5)) {
+            s.zoom = 1.0;
+            s.panX = 0;
+            s.panY = 0;
+            applySlotTransform(i, { smooth: true });
+            changed = true;
+          }
+        }
+        if (changed) showToast('Reset all screens to 100% centered', 'info');
+      }
+
+      function updateResetAllZoomButtonUI() {
+        const anyZoomed = [1, 2, 3, 4].some((n) => {
+          const s = state.viewer.slots[n];
+          return s.active && (Math.abs(s.zoom - 1) > 0.005 || Math.abs(s.panX) > 0.5 || Math.abs(s.panY) > 0.5);
+        });
+
+        if (anyZoomed) {
+          dom.btnResetAllZoom.className = 'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-300 border border-amber-300 text-slate-950 text-[11px] font-extrabold shadow-lg shadow-amber-500/25 transition-all active:scale-95';
+        } else {
+          dom.btnResetAllZoom.className = 'inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-400 text-[11px] font-bold transition-all active:scale-95';
+        }
+      }
+
+      /**
+       * Wire full Mouse Drag-to-Pan, Double-Click Zoom, Mouse Wheel Zoom,
+       * Touch 1-Finger Drag-to-Pan, Double-Tap Zoom, and 2-Finger Pinch-to-Zoom on a slot stage.
+       */
+      function bindSlotZoomPanGestures(slotNum, stageEl) {
+        let isMouseDragging = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let originPanX = 0;
+        let originPanY = 0;
+
+        // Mouse Drag-to-Pan
+        stageEl.addEventListener('mousedown', (e) => {
+          if (e.button !== 0) return;
+          const s = state.viewer.slots[slotNum];
+          if (!s.active || s.zoom <= 1.005) return;
+
+          e.preventDefault();
+          isMouseDragging = true;
+          dragStartX = e.clientX;
+          dragStartY = e.clientY;
+          originPanX = s.panX;
+          originPanY = s.panY;
+          stageEl.style.cursor = 'grabbing';
+        });
+
+        window.addEventListener('mousemove', (e) => {
+          if (!isMouseDragging) return;
+          const s = state.viewer.slots[slotNum];
+          if (!s.active) {
+            isMouseDragging = false;
+            return;
+          }
+          s.panX = originPanX + (e.clientX - dragStartX);
+          s.panY = originPanY + (e.clientY - dragStartY);
+          applySlotTransform(slotNum, { smooth: false });
+        });
+
+        window.addEventListener('mouseup', () => {
+          if (!isMouseDragging) return;
+          isMouseDragging = false;
+          const s = state.viewer.slots[slotNum];
+          stageEl.style.cursor = s.active && s.zoom > 1.005 ? 'grab' : 'default';
+        });
+
+        // Double-Click Smooth Toggle: 100% <-> 200% toward clicked point
+        stageEl.addEventListener('dblclick', (e) => {
+          const s = state.viewer.slots[slotNum];
+          if (!s.active) return;
+          e.preventDefault();
+          if (Math.abs(s.zoom - 1.0) > 0.05) {
+            resetSlotZoom(slotNum);
+          } else {
+            setSlotZoom(slotNum, 2.0, { anchorX: e.clientX, anchorY: e.clientY, smooth: true });
+          }
+        });
+
+        // Mouse Wheel Zoom (Ctrl/Alt + Wheel in Grid view, or direct Wheel in Spotlight mode)
+        stageEl.addEventListener('wheel', (e) => {
+          const s = state.viewer.slots[slotNum];
+          if (!s.active) return;
+          const isSpotlight = state.viewer.spotlightSlot === slotNum;
+          if (!isSpotlight && !e.ctrlKey && !e.altKey) return;
+
+          e.preventDefault();
+          const factor = e.deltaY < 0 ? 1.12 : 0.89;
+          setSlotZoom(slotNum, s.zoom * factor, {
+            anchorX: e.clientX,
+            anchorY: e.clientY,
+            smooth: false
+          });
+        }, { passive: false });
+
+        // Touch Gestures: 2-Finger Pinch-to-Zoom, 1-Finger Drag-to-Pan, Double-Tap Zoom
+        let touchMode = 'none'; // 'none' | 'pan' | 'pinch'
+        let lastTapTime = 0;
+        let lastTapX = 0;
+        let lastTapY = 0;
+        let touchMoved = false;
+
+        let pinchStartDist = 0;
+        let pinchStartZoom = 1;
+        let pinchLastMidX = 0;
+        let pinchLastMidY = 0;
+
+        function getTouchDistance(t1, t2) {
+          return Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+        }
+
+        stageEl.addEventListener('touchstart', (e) => {
+          const s = state.viewer.slots[slotNum];
+          if (!s.active) return;
+
+          if (e.touches.length === 2) {
+            e.preventDefault();
+            touchMode = 'pinch';
+            touchMoved = true;
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            pinchStartDist = Math.max(10, getTouchDistance(t1, t2));
+            pinchStartZoom = s.zoom;
+            pinchLastMidX = (t1.clientX + t2.clientX) / 2;
+            pinchLastMidY = (t1.clientY + t2.clientY) / 2;
+          } else if (e.touches.length === 1) {
+            const t = e.touches[0];
+            touchMoved = false;
+            dragStartX = t.clientX;
+            dragStartY = t.clientY;
+            originPanX = s.panX;
+            originPanY = s.panY;
+            touchMode = s.zoom > 1.005 ? 'pan' : 'tap';
+          }
+        }, { passive: false });
+
+        stageEl.addEventListener('touchmove', (e) => {
+          const s = state.viewer.slots[slotNum];
+          if (!s.active) return;
+
+          if (e.touches.length === 2 && touchMode === 'pinch') {
+            e.preventDefault();
+            const t1 = e.touches[0];
+            const t2 = e.touches[1];
+            const dist = Math.max(10, getTouchDistance(t1, t2));
+            const midX = (t1.clientX + t2.clientX) / 2;
+            const midY = (t1.clientY + t2.clientY) / 2;
+
+            // Natural pan shift with two-finger midpoint + optical pinch zoom
+            s.panX += (midX - pinchLastMidX);
+            s.panY += (midY - pinchLastMidY);
+            pinchLastMidX = midX;
+            pinchLastMidY = midY;
+
+            const targetZ = pinchStartZoom * (dist / pinchStartDist);
+            setSlotZoom(slotNum, targetZ, { anchorX: midX, anchorY: midY, smooth: false });
+          } else if (e.touches.length === 1 && touchMode === 'pan') {
+            e.preventDefault();
+            const t = e.touches[0];
+            if (Math.hypot(t.clientX - dragStartX, t.clientY - dragStartY) > 6) {
+              touchMoved = true;
+            }
+            s.panX = originPanX + (t.clientX - dragStartX);
+            s.panY = originPanY + (t.clientY - dragStartY);
+            applySlotTransform(slotNum, { smooth: false });
+          }
+        }, { passive: false });
+
+        stageEl.addEventListener('touchend', (e) => {
+          const s = state.viewer.slots[slotNum];
+          if (!s.active) return;
+
+          // Handle double-tap toggle (100% <-> 200% toward tapped point)
+          if (e.touches.length === 0 && !touchMoved && (touchMode === 'tap' || touchMode === 'pan')) {
+            const changed = e.changedTouches[0];
+            const now = Date.now();
+            if (now - lastTapTime < 310 && Math.hypot(changed.clientX - lastTapX, changed.clientY - lastTapY) < 32) {
+              e.preventDefault();
+              lastTapTime = 0;
+              if (Math.abs(s.zoom - 1.0) > 0.05) {
+                resetSlotZoom(slotNum);
+              } else {
+                setSlotZoom(slotNum, 2.0, { anchorX: changed.clientX, anchorY: changed.clientY, smooth: true });
+              }
+            } else {
+              lastTapTime = now;
+              lastTapX = changed.clientX;
+              lastTapY = changed.clientY;
+            }
+          }
+
+          if (e.touches.length < 2) {
+            touchMode = 'none';
+          }
+        }, { passive: false });
+
+        stageEl.addEventListener('touchcancel', () => {
+          touchMode = 'none';
+        });
+      }
+
+      /* ------------------------------------------------------------------- */
+      /* 7. HOST STUDIO (VIEWER GRID, QR CODES, SPOTLIGHT & LIVE PEERJS)     */
       /* ------------------------------------------------------------------- */
 
       function buildViewerGridDOM() {
@@ -996,29 +1892,27 @@
           tile.className = 'slot-tile relative rounded-xl sm:rounded-2xl overflow-hidden bg-slate-900 border-2 border-slate-800 flex items-center justify-center min-h-0 min-w-0 transition-colors duration-200';
 
           tile.innerHTML = `
-            <!-- Active Horizontal Video Stage (Click anywhere on video to toggle Spotlight) -->
-            <div id="slot-stage-${i}" class="hidden relative w-full h-full bg-black flex items-center justify-center overflow-hidden cursor-pointer" title="Click to toggle Spotlight Mode">
+            <!-- Active Horizontal Video Stage (supports Zoom, Pan, Pinch, Double-Tap) -->
+            <div id="slot-stage-${i}" class="hidden relative w-full h-full bg-black flex items-center justify-center overflow-hidden touch-none">
               <video id="slot-video-${i}" autoplay playsinline muted class="slot-video-el w-full h-full object-cover bg-black"></video>
             </div>
 
             <!-- Empty State: Horizontal Classroom QR Join Card -->
             <div id="slot-empty-${i}" class="w-full h-full studio-dots flex items-center justify-center p-2.5 sm:p-4 overflow-hidden">
               <div class="w-full max-w-md flex flex-row items-center justify-center gap-3 sm:gap-5">
-                <!-- Scannable QR Code Frame -->
                 <div class="shrink-0 bg-white p-1.5 sm:p-2 rounded-xl shadow-xl border-2" style="border-color: ${meta.hex}">
                   <div id="slot-qr-${i}" class="qr-mount w-20 h-20 sm:w-28 sm:h-28 md:w-32 md:h-32 flex items-center justify-center text-slate-900 text-[10px] font-mono text-center"></div>
                 </div>
 
-                <!-- Slot Info & Fallback URL -->
                 <div class="min-w-0 text-left flex-1">
                   <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-slate-950 font-black text-xs sm:text-sm mb-1.5 shadow" style="background-color: ${meta.hex}">
                     <span>iPad ${i}</span>
                   </div>
                   <div class="text-xs sm:text-base font-extrabold text-white leading-tight">
-                    Scan to Mirror Horizontal
+                    Scan for 1-Tap Horizontal Mirror
                   </div>
                   <div class="text-[11px] sm:text-xs text-slate-400 mt-1">
-                    Room <span class="slot-room-text font-mono font-bold text-slate-200">----</span> · Slot ${i}
+                    Room <span class="slot-room-text font-mono font-bold text-slate-200">HALLO</span> · Slot ${i}
                   </div>
                   <div id="slot-url-fallback-${i}" class="hidden sm:block text-[10px] font-mono text-slate-500 truncate mt-1"></div>
                   <button type="button" data-copy-slot="${i}" class="mt-2 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-[10px] sm:text-[11px] font-bold text-slate-200 transition-colors">
@@ -1028,58 +1922,106 @@
               </div>
             </div>
 
-            <!-- Top-Left Live HUD: Editable Student Name + Live Resolution/FPS -->
-            <div id="slot-hud-${i}" class="hidden absolute top-2 left-2 z-20 flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 shadow-lg max-w-[65%]">
+            <!-- Top-Left Live HUD: Editable Student Name + Live Latency/FPS/Codec Telemetry Pill -->
+            <div id="slot-hud-${i}" class="hidden absolute top-2 left-2 z-20 flex flex-wrap items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-950/85 backdrop-blur-md border border-slate-700/80 shadow-lg max-w-[68%]">
               <span class="w-5 h-5 rounded-md text-[11px] font-black text-slate-950 flex items-center justify-center shrink-0" style="background-color: ${meta.hex}">
                 ${i}
               </span>
               <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
 
-              <!-- Inline Editable Student Name -->
-              <button type="button" id="slot-name-btn-${i}" data-rename-slot="${i}" title="Click to rename student / iPad" class="text-xs font-extrabold text-white hover:text-sky-300 truncate max-w-[120px] sm:max-w-[170px] text-left">
+              <button type="button" id="slot-name-btn-${i}" data-rename-slot="${i}" title="Click to rename student / iPad" class="text-xs font-extrabold text-white hover:text-teal-300 truncate max-w-[115px] sm:max-w-[165px] text-left">
                 iPad ${i}
               </button>
-              <input id="slot-name-input-${i}" type="text" maxlength="24" class="hidden w-28 sm:w-36 px-1.5 py-0.5 rounded bg-slate-800 border border-sky-400 text-xs font-bold text-white focus:outline-none" />
+              <input id="slot-name-input-${i}" type="text" maxlength="24" class="hidden w-28 sm:w-36 px-1.5 py-0.5 rounded bg-slate-800 border border-teal-400 text-xs font-bold text-white focus:outline-none" />
 
-              <span id="slot-stats-${i}" class="hidden md:inline font-mono text-[10px] font-bold text-slate-300 bg-slate-800/90 px-1.5 py-0.5 rounded-md shrink-0">
-                --×--
+              <span id="slot-telemetry-${i}" class="font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border bg-emerald-500/20 border-emerald-400/45 text-emerald-300 shrink-0">
+                --ms · --fps
               </span>
             </div>
 
-            <!-- Top-Right Per-Slot Action Toolbar: Rotate 90°, Spotlight, Disconnect -->
-            <div id="slot-toolbar-${i}" class="slot-toolbar hidden absolute top-2 right-2 z-20 flex items-center gap-1 p-1 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-700/80 shadow-xl">
-              <button type="button" data-action="rotate" data-slot="${i}" title="Rotate 90° (fix portrait iPad)" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-[11px] font-bold flex items-center gap-1 transition-colors">
-                <span>↻</span>
-                <span id="slot-rot-label-${i}" class="hidden sm:inline">90°</span>
-              </button>
+            <!-- Top-Right Per-Slot Floating Control Bar: Zoom -, %, +, Slider Toggle, Fit/Fill, Rotate, Spotlight, Disconnect -->
+            <div id="slot-toolbar-${i}" class="slot-toolbar hidden absolute top-2 right-2 z-20 flex flex-col items-end gap-1">
+              <div class="flex items-center gap-1 p-1 rounded-xl bg-slate-950/90 backdrop-blur-md border border-slate-700/80 shadow-xl">
+                <!-- Zoom Out (-25% down to 50%) -->
+                <button type="button" data-action="zoom-out" data-slot="${i}" title="Zoom Out (-25%)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-sm flex items-center justify-center transition-colors active:scale-95">
+                  −
+                </button>
 
-              <button type="button" data-action="spotlight" data-slot="${i}" title="Spotlight Fullscreen / Restore 2×2" class="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-[11px] font-bold transition-colors">
-                <span id="slot-spot-label-${i}">⤢</span>
-              </button>
+                <!-- Interactive Zoom % Reset Button -->
+                <button type="button" id="slot-zoom-pct-${i}" data-action="zoom-reset" data-slot="${i}" title="Click to reset Zoom to 100% & Center Pan" class="px-1.5 h-7 rounded-lg bg-slate-800 hover:bg-teal-500 hover:text-slate-950 text-teal-300 font-mono text-[11px] font-extrabold min-w-[44px] text-center transition-colors">
+                  100%
+                </button>
 
-              <button type="button" data-action="disconnect" data-slot="${i}" title="Disconnect iPad" class="px-2 py-1.5 rounded-lg bg-rose-500/25 hover:bg-rose-500/45 text-rose-200 text-[11px] font-extrabold transition-colors">
-                ✕
-              </button>
+                <!-- Zoom In (+25% up to 350%) -->
+                <button type="button" data-action="zoom-in" data-slot="${i}" title="Zoom In (+25%)" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-black text-sm flex items-center justify-center transition-colors active:scale-95">
+                  +
+                </button>
+
+                <!-- Expandable Compact Slider Toggle -->
+                <button type="button" data-action="toggle-slider" data-slot="${i}" title="Smooth Zoom Slider (50%–350%)" class="hidden sm:flex w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold items-center justify-center transition-colors">
+                  🎚
+                </button>
+
+                <span class="w-px h-4 bg-slate-700 mx-0.5"></span>
+
+                <!-- Per-slot Fill/Fit Override -->
+                <button type="button" id="slot-fit-btn-${i}" data-action="toggle-fit" data-slot="${i}" title="Toggle Fill Box / Full Fit for this slot" class="hidden md:inline-flex px-2 h-7 items-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[11px] font-bold transition-colors">
+                  Fill
+                </button>
+
+                <!-- Rotate 90° -->
+                <button type="button" data-action="rotate" data-slot="${i}" title="Rotate 90°" class="px-2 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 text-[11px] font-bold flex items-center gap-0.5 transition-colors">
+                  <span>↻</span>
+                  <span id="slot-rot-label-${i}" class="hidden lg:inline">90°</span>
+                </button>
+
+                <!-- Spotlight Expand -->
+                <button type="button" data-action="spotlight" data-slot="${i}" title="Expand to Full-Screen Spotlight" class="px-2 h-7 rounded-lg bg-teal-500/20 hover:bg-teal-400 hover:text-slate-950 text-teal-200 text-xs font-extrabold transition-colors">
+                  ⤢
+                </button>
+
+                <!-- Disconnect -->
+                <button type="button" data-action="disconnect" data-slot="${i}" title="Disconnect iPad" class="w-7 h-7 rounded-lg bg-rose-500/25 hover:bg-rose-500 hover:text-white text-rose-200 text-xs font-extrabold flex items-center justify-center transition-colors">
+                  ✕
+                </button>
+              </div>
+
+              <!-- Compact Expandable Zoom Slider Pill in Grid View -->
+              <div id="slot-slider-pop-${i}" class="hidden flex items-center gap-2 px-2.5 py-1.5 rounded-xl bg-slate-950/95 backdrop-blur-md border border-teal-500/40 shadow-2xl">
+                <span class="text-[10px] font-mono text-slate-400">50%</span>
+                <input id="slot-zoom-slider-${i}" type="range" min="50" max="350" step="5" value="100" aria-label="Slot ${i} Zoom Slider" class="zoom-range w-28" />
+                <span class="text-[10px] font-mono text-slate-400">350%</span>
+              </div>
+            </div>
+
+            <!-- Subtle Bottom Hint when Zoomed > 100% -->
+            <div id="slot-pan-hint-${i}" class="hidden pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 z-10 px-2.5 py-0.5 rounded-full bg-slate-950/75 border border-slate-700/70 text-[10px] font-semibold text-slate-300">
+              Drag to Pan · Double-Tap to Reset
             </div>
           `;
 
-          // Click active video area -> toggle Spotlight Mode!
+          // Bind Zoom/Pan/Pinch/Double-Tap gestures on video stage
           const stageEl = tile.querySelector(`#slot-stage-${i}`);
-          stageEl.addEventListener('click', () => {
-            if (!state.viewer.slots[i].active) return;
-            toggleSpotlight(i);
+          bindSlotZoomPanGestures(i, stageEl);
+
+          // Bind inline slider inside grid popover
+          const gridSlider = tile.querySelector(`#slot-zoom-slider-${i}`);
+          gridSlider.addEventListener('input', (e) => {
+            e.stopPropagation();
+            const pct = Number(e.target.value) || 100;
+            setSlotZoom(i, pct / 100, { smooth: false });
           });
 
           // Copy slot link button
           const copyBtn = tile.querySelector(`button[data-copy-slot="${i}"]`);
           copyBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            const url = buildJoinUrl(state.viewer.roomCode, i);
+            const url = buildJoinUrl(state.viewer.roomCode, i, state.viewer.latencyMode);
             const ok = copyTextToClipboard(url);
-            showToast(ok ? `Copied Slot ${i} link!` : `Room ${state.viewer.roomCode} · Slot ${i}`, ok ? 'success' : 'info');
+            showToast(ok ? `Copied Slot ${i} QR Link!` : `Room ${state.viewer.roomCode} · Slot ${i}`, ok ? 'success' : 'info');
           });
 
-          // Inline Student Name Editing (no browser prompt())
+          // Inline Student Name Editing
           const nameBtn = tile.querySelector(`#slot-name-btn-${i}`);
           const nameInput = tile.querySelector(`#slot-name-input-${i}`);
 
@@ -1098,6 +2040,7 @@
             nameBtn.textContent = nextName;
             nameInput.classList.add('hidden');
             nameBtn.classList.remove('hidden');
+            if (state.viewer.spotlightSlot !== null) renderSpotlightSwitcherPills();
           };
 
           nameInput.addEventListener('click', (e) => e.stopPropagation());
@@ -1127,8 +2070,7 @@
             if (videoEl.videoWidth && videoEl.videoHeight) {
               state.viewer.slots[i].width = videoEl.videoWidth;
               state.viewer.slots[i].height = videoEl.videoHeight;
-              updateSlotStatsPill(i);
-              applySlotVideoGeometry(i);
+              applySlotTransform(i, { smooth: false });
             }
           };
           videoEl.addEventListener('loadedmetadata', () => {
@@ -1141,11 +2083,10 @@
         }
       }
 
-      /**
-       * Render scannable QR codes inside all 4 empty slots for the current Room Code.
-       */
       function renderAllSlotQRCodes() {
         const room = state.viewer.roomCode;
+        const mode = state.viewer.latencyMode;
+
         document.querySelectorAll('.slot-room-text').forEach((el) => {
           el.textContent = room;
         });
@@ -1153,7 +2094,7 @@
         for (let i = 1; i <= 4; i++) {
           const qrBox = document.getElementById(`slot-qr-${i}`);
           const fallbackEl = document.getElementById(`slot-url-fallback-${i}`);
-          const joinUrl = buildJoinUrl(room, i);
+          const joinUrl = buildJoinUrl(room, i, mode);
           const shortUrl = buildShortDisplayUrl(room, i);
 
           if (fallbackEl) fallbackEl.textContent = shortUrl;
@@ -1165,14 +2106,13 @@
             try {
               new QRCode(qrBox, {
                 text: joinUrl,
-                width: 160,
-                height: 160,
+                width: 168,
+                height: 168,
                 colorDark: '#020617',
                 colorLight: '#ffffff',
                 correctLevel: QRCode.CorrectLevel.M
               });
-            } catch (err) {
-              console.warn('QR render fallback:', err);
+            } catch (_) {
               qrBox.innerHTML = `<div class="p-2 text-[10px] font-bold text-slate-800 break-all">${escapeHtml(shortUrl)}</div>`;
             }
           } else {
@@ -1181,25 +2121,48 @@
         }
       }
 
-      /**
-       * Launch Viewer Mode: load locked room from localStorage (if any) or generate 4-char code.
-       */
       function startViewerMode() {
         switchView('viewer');
         buildViewerGridDOM();
 
         const locked = getSavedLockedRoom();
         state.viewer.roomLocked = Boolean(locked);
-        state.viewer.roomCode = locked || generateRandomRoomCode();
+        state.viewer.roomCode = locked || DEFAULT_ROOM_CODE;
         state.viewer.spotlightSlot = null;
         state.viewer.layoutMode = '2x2';
         state.viewer.fitMode = 'cover';
+        state.viewer.latencyMode = 'ultra';
 
         updateViewerRoomHeaderUI();
         updateViewerToggleButtonsUI();
         renderAllSlotQRCodes();
         renderViewerGridLayout();
         initViewerPeer(state.viewer.roomCode);
+        startViewerStatsPolling();
+      }
+
+      function setHostLatencyMode(modeKey) {
+        const clean = sanitizeLatencyMode(modeKey);
+        state.viewer.latencyMode = clean;
+        const cfg = LATENCY_MODES[clean];
+
+        updateViewerToggleButtonsUI();
+        renderAllSlotQRCodes();
+
+        // Dynamically push SET_MODE command over DataConnection to all connected live Senders!
+        let notified = 0;
+        for (let i = 1; i <= 4; i++) {
+          const s = state.viewer.slots[i];
+          if (s.active && !s.isDemo && s.dataConn && s.dataConn.open) {
+            try {
+              s.dataConn.send({ type: 'SET_MODE', mode: clean });
+              notified++;
+            } catch (_) {}
+          }
+        }
+
+        const suffix = notified > 0 ? ` — synced to ${notified} live iPad${notified > 1 ? 's' : ''}!` : '';
+        showToast(`Latency Mode: ${cfg.label} (${cfg.width}×${cfg.height} · ${cfg.fps}fps)${suffix}`, 'info');
       }
 
       function updateViewerRoomHeaderUI() {
@@ -1228,12 +2191,19 @@
 
         peer.on('open', () => {
           setViewerPeerDot('ready');
-          showToast(`HALLO ROOM "${roomCode}" is ready — scan any slot QR!`, 'success');
+          showToast(`HALLO ROOM "${roomCode}" ready (${LATENCY_MODES[state.viewer.latencyMode].label} H.264)`, 'success');
         });
 
-        // DataConnection for instant zero-freeze STOP & host-disconnect signals
+        // PeerJS DataConnection for zero-freeze STOP, HELLO, and live SET_MODE sync
         peer.on('connection', (conn) => {
           state.viewer.dataConnsByPeer.set(conn.peer, conn);
+
+          conn.on('open', () => {
+            // Immediately sync current host latency profile to newly connected iPad
+            try {
+              conn.send({ type: 'SET_MODE', mode: state.viewer.latencyMode });
+            } catch (_) {}
+          });
 
           conn.on('data', (msg) => {
             if (!msg || typeof msg !== 'object') return;
@@ -1247,8 +2217,10 @@
                 s.name = String(msg.name).trim().slice(0, 24);
                 updateSlotUI(slotNum);
               }
+              try {
+                conn.send({ type: 'SET_MODE', mode: state.viewer.latencyMode });
+              } catch (_) {}
             } else if (msg.type === 'STOP') {
-              // Sender stopped mirroring from iPadOS Control Center or Stop button
               const current = state.viewer.slots[slotNum];
               if (current.active && (!current.peerId || current.peerId === conn.peer)) {
                 clearViewerSlot(slotNum, { notifySender: false });
@@ -1262,7 +2234,7 @@
           });
         });
 
-        // Incoming WebRTC Video Stream (Receive-Only)
+        // Incoming WebRTC Video Stream (Receive-Only + Zero-Buffer + H.264 SDP priority)
         peer.on('call', (call) => {
           const meta = call.metadata || {};
           let slotNum = Number(meta.slot);
@@ -1274,7 +2246,6 @@
             ? String(meta.name).trim().slice(0, 24)
             : `iPad ${slotNum}`;
 
-          // Cleanly replace any existing demo or previous stream in this slot
           if (state.viewer.slots[slotNum].active) {
             clearViewerSlot(slotNum, { notifySender: true });
           }
@@ -1286,19 +2257,50 @@
           slotState.isDemo = false;
           slotState.dataConn = state.viewer.dataConnsByPeer.get(call.peer) || null;
 
-          // Answer receive-only (no camera/mic prompt on Teacher TV!)
+          // Answer receive-only with Hardware H.264 SDP transform
           try {
-            call.answer();
+            call.answer(undefined, { sdpTransform: preferH264InSdp });
           } catch (err) {
             console.error('[Viewer] Answer failed:', err);
             clearViewerSlot(slotNum, { notifySender: false });
             return;
           }
 
+          // UPGRADE 1: Immediately enforce Zero-Buffer Receiver Pipeline & H.264 preference
+          if (call.peerConnection) {
+            applyZeroBufferToPC(call.peerConnection);
+            applyH264TransceiverPreference(call.peerConnection);
+
+            call.peerConnection.addEventListener('iceconnectionstatechange', () => {
+              const ice = call.peerConnection.iceConnectionState;
+              if (ice === 'connected' || ice === 'completed') {
+                clearTimeout(slotState.disconnectTimer);
+                applyZeroBufferToPC(call.peerConnection);
+              } else if (ice === 'failed' || ice === 'closed') {
+                if (state.viewer.slots[slotNum].call === call) {
+                  clearViewerSlot(slotNum, { notifySender: false });
+                }
+              } else if (ice === 'disconnected') {
+                clearTimeout(slotState.disconnectTimer);
+                slotState.disconnectTimer = setTimeout(() => {
+                  if (
+                    state.viewer.slots[slotNum].call === call &&
+                    call.peerConnection &&
+                    ['disconnected', 'failed', 'closed'].includes(call.peerConnection.iceConnectionState)
+                  ) {
+                    clearViewerSlot(slotNum, { notifySender: false });
+                  }
+                }, 3500);
+              }
+            });
+          }
+
           call.on('stream', (remoteStream) => {
             if (state.viewer.slots[slotNum].call !== call) return;
+            if (call.peerConnection) applyZeroBufferToPC(call.peerConnection);
+
             attachStreamToSlot(slotNum, remoteStream, label, false);
-            showToast(`${label} connected to Slot ${slotNum}`, 'success');
+            showToast(`${label} live on Slot ${slotNum}`, 'success');
 
             remoteStream.getVideoTracks().forEach((track) => {
               track.addEventListener('ended', () => {
@@ -1320,31 +2322,6 @@
               clearViewerSlot(slotNum, { notifySender: false });
             }
           });
-
-          // ICE connection drop safeguard so abrupt iPad sleep/Wi-Fi drop never freezes
-          if (call.peerConnection) {
-            call.peerConnection.addEventListener('iceconnectionstatechange', () => {
-              const ice = call.peerConnection.iceConnectionState;
-              if (ice === 'failed' || ice === 'closed') {
-                if (state.viewer.slots[slotNum].call === call) {
-                  clearViewerSlot(slotNum, { notifySender: false });
-                }
-              } else if (ice === 'disconnected') {
-                clearTimeout(slotState.disconnectTimer);
-                slotState.disconnectTimer = setTimeout(() => {
-                  if (
-                    state.viewer.slots[slotNum].call === call &&
-                    call.peerConnection &&
-                    ['disconnected', 'failed', 'closed'].includes(call.peerConnection.iceConnectionState)
-                  ) {
-                    clearViewerSlot(slotNum, { notifySender: false });
-                  }
-                }, 3500);
-              } else if (ice === 'connected' || ice === 'completed') {
-                clearTimeout(slotState.disconnectTimer);
-              }
-            });
-          }
         });
 
         peer.on('disconnected', () => {
@@ -1362,13 +2339,13 @@
           console.error('[Viewer] PeerJS error:', err);
           if (err.type === 'unavailable-id') {
             if (!state.viewer.roomLocked) {
-              state.viewer.roomCode = generateRandomRoomCode();
+              state.viewer.roomCode = `HALLO${Math.floor(10 + Math.random() * 89)}`;
               updateViewerRoomHeaderUI();
               renderAllSlotQRCodes();
               initViewerPeer(state.viewer.roomCode);
             } else {
               setViewerPeerDot('error');
-              showToast(`Room "${roomCode}" is already open in another tab. Edit Room Code or close the other tab.`, 'warn');
+              showToast(`Room "${roomCode}" is already open elsewhere. Edit Room Name or close the other tab.`, 'warn');
             }
           } else {
             setViewerPeerDot('error');
@@ -1399,92 +2376,30 @@
         s.isDemo = Boolean(isDemo);
         s.stream = stream;
         s.name = label || `iPad ${slotNum}`;
+        s.zoom = 1.0;
+        s.panX = 0;
+        s.panY = 0;
         s.rotation = 0;
-        s.fps = 0;
-        s.frameCount = 0;
-        s.lastFpsCheck = performance.now();
+        s.fitOverride = null;
+        s.latencyMs = isDemo ? 12 : null;
+        s.fps = isDemo ? 30 : 0;
+        s.codec = isDemo ? 'LOCAL' : '';
+        s.prevJitterDelay = 0;
+        s.prevJitterCount = 0;
 
         const videoEl = document.getElementById(`slot-video-${slotNum}`);
         if (videoEl) {
           videoEl.srcObject = stream;
           videoEl.muted = true;
           videoEl.play().catch(() => {});
-          startFpsMonitor(slotNum, videoEl);
         }
 
         updateSlotUI(slotNum);
+        updateSlotTelemetryBadge(slotNum);
         renderViewerGridLayout();
-        requestAnimationFrame(() => applySlotVideoGeometry(slotNum));
-      }
+        if (state.viewer.spotlightSlot !== null) renderSpotlightSwitcherPills();
 
-      /**
-       * Measure live decoded FPS cleanly via requestVideoFrameCallback (with track fallback).
-       */
-      function startFpsMonitor(slotNum, videoEl) {
-        const s = state.viewer.slots[slotNum];
-        if (typeof videoEl.requestVideoFrameCallback === 'function') {
-          const tick = (now) => {
-            if (!state.viewer.slots[slotNum].active) return;
-            s.frameCount += 1;
-            const elapsed = now - s.lastFpsCheck;
-            if (elapsed >= 1000) {
-              s.fps = Math.round((s.frameCount * 1000) / elapsed);
-              s.frameCount = 0;
-              s.lastFpsCheck = now;
-              updateSlotStatsPill(slotNum);
-            }
-            s.vfcId = videoEl.requestVideoFrameCallback(tick);
-          };
-          s.vfcId = videoEl.requestVideoFrameCallback(tick);
-        } else {
-          // Fallback to video track frameRate setting
-          const track = s.stream && s.stream.getVideoTracks ? s.stream.getVideoTracks()[0] : null;
-          if (track && track.getSettings) {
-            const set = track.getSettings();
-            if (set.frameRate) s.fps = Math.round(set.frameRate);
-          }
-          updateSlotStatsPill(slotNum);
-        }
-      }
-
-      function updateSlotStatsPill(slotNum) {
-        const s = state.viewer.slots[slotNum];
-        const el = document.getElementById(`slot-stats-${slotNum}`);
-        if (!el) return;
-        const dim = (s.width && s.height) ? `${s.width}×${s.height}` : '--×--';
-        el.textContent = s.fps > 0 ? `${dim} · ${s.fps} FPS` : dim;
-      }
-
-      /**
-       * Apply Fill Box (cover) / Full Fit (contain) AND per-slot 90° rotation cleanly
-       * so even a portrait iPad rotated 90° fills the horizontal frame properly.
-       */
-      function applySlotVideoGeometry(slotNum) {
-        const s = state.viewer.slots[slotNum];
-        const stageEl = document.getElementById(`slot-stage-${slotNum}`);
-        const videoEl = document.getElementById(`slot-video-${slotNum}`);
-        if (!stageEl || !videoEl || !s.active) return;
-
-        const isCover = state.viewer.fitMode === 'cover';
-        videoEl.classList.toggle('object-cover', isCover);
-        videoEl.classList.toggle('object-contain', !isCover);
-
-        const rot = s.rotation % 360;
-        if (rot === 90 || rot === 270) {
-          const w = stageEl.clientWidth;
-          const h = stageEl.clientHeight;
-          videoEl.style.width = `${h}px`;
-          videoEl.style.height = `${w}px`;
-          videoEl.style.maxWidth = 'none';
-          videoEl.style.maxHeight = 'none';
-          videoEl.style.transform = `rotate(${rot}deg)`;
-        } else {
-          videoEl.style.width = '100%';
-          videoEl.style.height = '100%';
-          videoEl.style.maxWidth = '100%';
-          videoEl.style.maxHeight = '100%';
-          videoEl.style.transform = rot === 180 ? 'rotate(180deg)' : 'none';
-        }
+        requestAnimationFrame(() => applySlotTransform(slotNum, { smooth: false }));
       }
 
       function clearViewerSlot(slotNum, { notifySender = false } = {}) {
@@ -1492,9 +2407,7 @@
         clearTimeout(s.disconnectTimer);
 
         if (notifySender && s.dataConn && s.dataConn.open) {
-          try {
-            s.dataConn.send({ type: 'HOST_DISCONNECT', slot: slotNum });
-          } catch (_) {}
+          try { s.dataConn.send({ type: 'HOST_DISCONNECT', slot: slotNum }); } catch (_) {}
         }
 
         if (s.call) {
@@ -1509,9 +2422,6 @@
 
         const videoEl = document.getElementById(`slot-video-${slotNum}`);
         if (videoEl) {
-          if (s.vfcId && typeof videoEl.cancelVideoFrameCallback === 'function') {
-            try { videoEl.cancelVideoFrameCallback(s.vfcId); } catch (_) {}
-          }
           videoEl.pause();
           videoEl.srcObject = null;
           videoEl.style.transform = 'none';
@@ -1519,14 +2429,19 @@
           videoEl.style.height = '100%';
         }
 
+        const sliderPop = document.getElementById(`slot-slider-pop-${slotNum}`);
+        if (sliderPop) sliderPop.classList.add('hidden');
+
         state.viewer.slots[slotNum] = createEmptySlot(slotNum);
 
         if (state.viewer.spotlightSlot === slotNum) {
-          state.viewer.spotlightSlot = null;
+          exitSpotlight();
         }
 
         updateSlotUI(slotNum);
         renderViewerGridLayout();
+        updateResetAllZoomButtonUI();
+        if (state.viewer.spotlightSlot !== null) renderSpotlightSwitcherPills();
       }
 
       function updateSlotUI(slotNum) {
@@ -1538,8 +2453,7 @@
         const hudEl = document.getElementById(`slot-hud-${slotNum}`);
         const toolbarEl = document.getElementById(`slot-toolbar-${slotNum}`);
         const nameBtn = document.getElementById(`slot-name-btn-${slotNum}`);
-        const rotLabel = document.getElementById(`slot-rot-label-${slotNum}`);
-        const spotLabel = document.getElementById(`slot-spot-label-${slotNum}`);
+        const panHint = document.getElementById(`slot-pan-hint-${slotNum}`);
 
         if (!tile) return;
 
@@ -1547,18 +2461,19 @@
           stageEl.classList.remove('hidden');
           emptyEl.classList.add('hidden');
           hudEl.classList.remove('hidden');
-          toolbarEl.classList.remove('hidden');
+          // In Spotlight mode, top spotlight bar has full controls so keep tile uncluttered
+          toolbarEl.classList.toggle('hidden', state.viewer.spotlightSlot === slotNum);
           tile.style.borderColor = meta.hex;
           if (nameBtn) nameBtn.textContent = s.name;
-          if (rotLabel) rotLabel.textContent = s.rotation === 0 ? '90°' : `${s.rotation}°`;
-          if (spotLabel) spotLabel.textContent = state.viewer.spotlightSlot === slotNum ? '⊞' : '⤢';
-          updateSlotStatsPill(slotNum);
-          applySlotVideoGeometry(slotNum);
+          if (panHint) panHint.classList.toggle('hidden', s.zoom <= 1.05);
+          updateSlotTelemetryBadge(slotNum);
+          applySlotTransform(slotNum, { smooth: false });
         } else {
           stageEl.classList.add('hidden');
           emptyEl.classList.remove('hidden');
           hudEl.classList.add('hidden');
           toolbarEl.classList.add('hidden');
+          if (panHint) panHint.classList.add('hidden');
           tile.style.borderColor = '#1e293b';
         }
 
@@ -1566,25 +2481,32 @@
         dom.viewerLiveBadge.textContent = `${liveCount} / 4 Live`;
       }
 
-      function toggleSpotlight(slotNum) {
-        state.viewer.spotlightSlot = state.viewer.spotlightSlot === slotNum ? null : slotNum;
-        for (let i = 1; i <= 4; i++) updateSlotUI(i);
-        renderViewerGridLayout();
-        requestAnimationFrame(() => {
-          for (let i = 1; i <= 4; i++) applySlotVideoGeometry(i);
-        });
-      }
-
       function handleSlotToolbarAction(action, slotNum) {
         const s = state.viewer.slots[slotNum];
         if (!s.active) return;
 
-        if (action === 'rotate') {
+        if (action === 'zoom-in') {
+          stepSlotZoom(slotNum, ZOOM_STEP);
+          updateSlotPanHint(slotNum);
+        } else if (action === 'zoom-out') {
+          stepSlotZoom(slotNum, -ZOOM_STEP);
+          updateSlotPanHint(slotNum);
+        } else if (action === 'zoom-reset') {
+          resetSlotZoom(slotNum);
+          updateSlotPanHint(slotNum);
+        } else if (action === 'toggle-slider') {
+          const pop = document.getElementById(`slot-slider-pop-${slotNum}`);
+          if (pop) pop.classList.toggle('hidden');
+        } else if (action === 'toggle-fit') {
+          const cur = getEffectiveFitMode(slotNum);
+          s.fitOverride = cur === 'cover' ? 'contain' : 'cover';
+          applySlotTransform(slotNum, { smooth: true });
+        } else if (action === 'rotate') {
           s.rotation = (s.rotation + 90) % 360;
-          updateSlotUI(slotNum);
+          applySlotTransform(slotNum, { smooth: true });
           showToast(`Rotated ${s.name} to ${s.rotation}°`, 'info');
         } else if (action === 'spotlight') {
-          toggleSpotlight(slotNum);
+          enterSpotlight(slotNum);
         } else if (action === 'disconnect') {
           const name = s.name;
           const wasDemo = s.isDemo;
@@ -1594,6 +2516,105 @@
             stopDemoStreams();
           }
         }
+      }
+
+      function updateSlotPanHint(slotNum) {
+        const s = state.viewer.slots[slotNum];
+        const panHint = document.getElementById(`slot-pan-hint-${slotNum}`);
+        if (panHint) panHint.classList.toggle('hidden', !s.active || s.zoom <= 1.05);
+      }
+
+      /* ------------------------------------------------------------------- */
+      /* 8. UPGRADE 2: ENHANCED SPOTLIGHT (FULL-SCREEN FOCUS) MODE           */
+      /* ------------------------------------------------------------------- */
+
+      function enterSpotlight(slotNum) {
+        if (!state.viewer.slots[slotNum].active) return;
+        state.viewer.spotlightSlot = slotNum;
+
+        dom.viewerTopbar.classList.add('hidden');
+        dom.btnShowTopbar.classList.add('hidden');
+        dom.spotlightBar.classList.remove('hidden');
+
+        renderSpotlightSwitcherPills();
+        syncSpotlightControlsForSlot(slotNum);
+
+        for (let i = 1; i <= 4; i++) updateSlotUI(i);
+        renderViewerGridLayout();
+
+        requestAnimationFrame(() => {
+          applySlotTransform(slotNum, { smooth: false });
+          updateSlotTelemetryBadge(slotNum);
+        });
+      }
+
+      function exitSpotlight() {
+        if (state.viewer.spotlightSlot === null) return;
+        state.viewer.spotlightSlot = null;
+
+        dom.spotlightBar.classList.add('hidden');
+        if (state.viewer.topbarHidden) {
+          dom.btnShowTopbar.classList.remove('hidden');
+        } else {
+          dom.viewerTopbar.classList.remove('hidden');
+        }
+
+        for (let i = 1; i <= 4; i++) updateSlotUI(i);
+        renderViewerGridLayout();
+
+        requestAnimationFrame(() => {
+          for (let i = 1; i <= 4; i++) {
+            if (state.viewer.slots[i].active) applySlotTransform(i, { smooth: false });
+          }
+        });
+      }
+
+      function renderSpotlightSwitcherPills() {
+        dom.spotlightSwitcher.innerHTML = '';
+
+        for (let i = 1; i <= 4; i++) {
+          const s = state.viewer.slots[i];
+          const meta = SLOTS[i];
+          const isSelected = state.viewer.spotlightSlot === i;
+
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.disabled = !s.active;
+          btn.className = `inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-all ${
+            isSelected
+              ? 'bg-slate-800 text-white shadow-lg scale-[1.02]'
+              : s.active
+                ? 'bg-slate-950/90 hover:bg-slate-800 border-slate-700 text-slate-300'
+                : 'bg-slate-950/40 border-slate-800/70 text-slate-600 cursor-not-allowed'
+          }`;
+          if (isSelected) btn.style.borderColor = meta.hex;
+
+          btn.innerHTML = `
+            <span class="w-4 h-4 rounded text-[10px] font-black text-slate-950 flex items-center justify-center shrink-0" style="background-color: ${s.active ? meta.hex : '#334155'}">${i}</span>
+            <span class="w-1.5 h-1.5 rounded-full ${s.active ? 'bg-emerald-400' : 'bg-slate-700'} shrink-0"></span>
+            <span class="max-w-[96px] truncate">${escapeHtml(s.active ? s.name : `Slot ${i}`)}</span>
+          `;
+
+          btn.addEventListener('click', () => {
+            if (s.active) enterSpotlight(i);
+          });
+
+          dom.spotlightSwitcher.appendChild(btn);
+        }
+      }
+
+      function syncSpotlightControlsForSlot(slotNum) {
+        const s = state.viewer.slots[slotNum];
+        if (!s) return;
+        const pct = Math.round(s.zoom * 100);
+        dom.spotZoomSlider.value = String(pct);
+        dom.btnSpotZoomReset.textContent = `${pct}%`;
+
+        const fit = getEffectiveFitMode(slotNum);
+        dom.btnSpotFit.textContent = fit === 'cover' ? 'Fill Box' : 'Full Fit';
+        dom.btnSpotRotate.textContent = s.rotation === 0 ? '↻ 90°' : `↻ ${s.rotation}°`;
+        updateSlotTelemetryBadge(slotNum);
+        updateSlotPanHint(slotNum);
       }
 
       function renderViewerGridLayout() {
@@ -1607,10 +2628,17 @@
           for (let i = 1; i <= 4; i++) {
             const tile = document.getElementById(`slot-tile-${i}`);
             if (!tile) continue;
-            tile.classList.toggle('hidden', i !== spotlight);
-            tile.classList.remove('col-span-2');
+            tile.classList.remove('hidden', 'col-span-2');
+            // Keep non-spotlighted tiles alive off-screen so their WebRTC decoders stay warm
+            tile.classList.toggle('slot-bg-keepalive', i !== spotlight);
           }
           return;
+        }
+
+        // Remove off-screen keepalive class when returning to grid
+        for (let i = 1; i <= 4; i++) {
+          const tile = document.getElementById(`slot-tile-${i}`);
+          if (tile) tile.classList.remove('slot-bg-keepalive');
         }
 
         if (state.viewer.layoutMode === '2x2') {
@@ -1664,17 +2692,27 @@
       }
 
       function updateViewerToggleButtonsUI() {
+        const mode = state.viewer.latencyMode;
+        const activeModeCls = 'px-2 py-1 rounded-md text-[11px] font-extrabold bg-[#2dd4bf] text-slate-950 transition-colors';
+        const idleModeCls = 'px-2 py-1 rounded-md text-[11px] font-bold text-slate-400 hover:text-white transition-colors';
+
+        dom.btnModeUltra.className = mode === 'ultra' ? activeModeCls : idleModeCls;
+        dom.btnModeBalanced.className = mode === 'balanced' ? activeModeCls : idleModeCls;
+        dom.btnModeSharp.className = mode === 'sharp' ? activeModeCls : idleModeCls;
+
+        const isCover = state.viewer.fitMode === 'cover';
+        dom.btnFitCover.className = `px-2 py-1 rounded-md text-[11px] font-bold transition-colors ${isCover ? 'bg-sky-400 text-slate-950' : 'text-slate-400 hover:text-white'}`;
+        dom.btnFitContain.className = `px-2 py-1 rounded-md text-[11px] font-bold transition-colors ${!isCover ? 'bg-sky-400 text-slate-950' : 'text-slate-400 hover:text-white'}`;
+
         const is2x2 = state.viewer.layoutMode === '2x2';
         dom.btnLayout2x2.className = `px-2 py-1 rounded-md text-[11px] font-bold transition-colors ${is2x2 ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white'}`;
         dom.btnLayoutAuto.className = `px-2 py-1 rounded-md text-[11px] font-bold transition-colors ${!is2x2 ? 'bg-slate-800 text-white' : 'text-slate-400 hover:text-white'}`;
-
-        const isCover = state.viewer.fitMode === 'cover';
-        dom.btnFitCover.className = `px-2 py-1 rounded-md text-[11px] font-bold transition-colors ${isCover ? 'bg-[#38bdf8] text-slate-950' : 'text-slate-400 hover:text-white'}`;
-        dom.btnFitContain.className = `px-2 py-1 rounded-md text-[11px] font-bold transition-colors ${!isCover ? 'bg-[#38bdf8] text-slate-950' : 'text-slate-400 hover:text-white'}`;
       }
 
       function exitViewerMode() {
+        stopViewerStatsPolling();
         stopDemoStreams();
+        exitSpotlight();
         for (let i = 1; i <= 4; i++) {
           clearViewerSlot(i, { notifySender: true });
         }
@@ -1691,7 +2729,7 @@
       }
 
       /* ------------------------------------------------------------------- */
-      /* 6. HORIZONTAL 4:3 CLASSROOM DEMO MODE (4× 1280×960 @ 20 FPS)        */
+      /* 9. HORIZONTAL 4:3 TEST DEMO (4× 1280×960 @ 30 FPS + MS STOPWATCH)   */
       /* ------------------------------------------------------------------- */
 
       function toggleDemoStreams() {
@@ -1716,51 +2754,49 @@
 
         const demoNames = {
           1: 'iPad 1 · Block Maze',
-          2: 'iPad 2 · Python Lab',
+          2: 'iPad 2 · Python Code',
           3: 'iPad 3 · Phonics Quiz',
           4: 'iPad 4 · Pixel Art'
         };
 
         state.viewer.demoCanvases = {};
+        const startTs = performance.now();
 
         for (let i = 1; i <= 4; i++) {
           if (state.viewer.slots[i].active && !state.viewer.slots[i].isDemo) continue;
 
-          // True Horizontal 4:3 iPad Resolution (1280x960)
           const canvas = document.createElement('canvas');
           canvas.width = 1280;
           canvas.height = 960;
           const ctx = canvas.getContext('2d');
           state.viewer.demoCanvases[i] = { canvas, ctx };
 
-          // Draw an initial frame immediately before capturing
-          drawHorizontalDemoFrame(i, ctx, 1280, 960, 0);
+          drawHorizontalDemoFrame(i, ctx, 1280, 960, 0, 0);
 
-          const stream = canvas.captureStream(20);
+          const stream = canvas.captureStream(30);
           attachStreamToSlot(i, stream, demoNames[i], true);
         }
 
-        const startTs = performance.now();
         let lastDraw = 0;
-
         function loop(now) {
           if (!state.viewer.demoActive) return;
           state.viewer.demoRafId = requestAnimationFrame(loop);
 
-          if (now - lastDraw < 48) return; // ~20 FPS
+          if (now - lastDraw < 31) return; // Smooth ~30 FPS
           lastDraw = now;
-          const t = (now - startTs) / 1000;
+          const elapsedMs = now - startTs;
+          const t = elapsedMs / 1000;
 
           Object.keys(state.viewer.demoCanvases).forEach((k) => {
             const slotNum = Number(k);
             if (!state.viewer.slots[slotNum].isDemo) return;
             const { ctx, canvas } = state.viewer.demoCanvases[slotNum];
-            drawHorizontalDemoFrame(slotNum, ctx, canvas.width, canvas.height, t);
+            drawHorizontalDemoFrame(slotNum, ctx, canvas.width, canvas.height, t, elapsedMs);
           });
         }
 
         state.viewer.demoRafId = requestAnimationFrame(loop);
-        showToast('4 Horizontal (1280×960) Classroom iPads active!', 'success');
+        showToast('4× Horizontal 1280×960 Demo iPads live! Try Zoom (+/−), Drag-to-Pan, or Spotlight.', 'success');
       }
 
       function stopDemoStreams() {
@@ -1779,9 +2815,14 @@
         dom.btnToggleDemo.className = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/35 text-[#34d399] text-[11px] font-bold transition-colors active:scale-95';
       }
 
-      /**
-       * Helper to draw rounded rectangles safely across all canvas engines.
-       */
+      function formatStopwatchMs(ms) {
+        const totalSec = Math.floor(ms / 1000);
+        const mins = String(Math.floor(totalSec / 60)).padStart(2, '0');
+        const secs = String(totalSec % 60).padStart(2, '0');
+        const millis = String(Math.floor(ms % 1000)).padStart(3, '0');
+        return `${mins}:${secs}.${millis}`;
+      }
+
       function drawRoundedRect(ctx, x, y, w, h, r) {
         ctx.beginPath();
         ctx.moveTo(x + r, y);
@@ -1793,50 +2834,65 @@
       }
 
       /**
-       * Renders 4 distinct, bright horizontal 4:3 (1280×960) iPad classroom apps.
+       * Renders 4 bright horizontal 4:3 (1280×960) iPad classroom apps with live millisecond stopwatches.
+       * iPad 2 features realistic small syntax-highlighted Python code specifically to test 200%–350% Zoom & Pan.
        */
-      function drawHorizontalDemoFrame(slotNum, ctx, w, h, t) {
+      function drawHorizontalDemoFrame(slotNum, ctx, w, h, t, elapsedMs) {
         const accent = SLOTS[slotNum].hex;
+        const swText = formatStopwatchMs(elapsedMs);
 
-        // Shared Horizontal iPadOS Status Bar
+        // Shared Horizontal iPadOS Status Bar + Millisecond Stopwatch
         ctx.fillStyle = '#0f172a';
         ctx.fillRect(0, 0, w, h);
 
         ctx.fillStyle = '#020617';
-        ctx.fillRect(0, 0, w, 46);
+        ctx.fillRect(0, 0, w, 50);
         ctx.fillStyle = '#e2e8f0';
         ctx.font = '700 20px Inter, sans-serif';
-        const clock = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        ctx.fillText(`${clock}   HALLO ROOM · iPad ${slotNum}`, 28, 30);
+        ctx.fillText(`HALLO ROOM · iPad ${slotNum} (4:3 Landscape)`, 28, 32);
+
+        // Live Millisecond Stopwatch Pill (for latency & smoothness verification)
+        ctx.fillStyle = '#0f172a';
+        drawRoundedRect(ctx, w / 2 - 120, 8, 240, 34, 10);
+        ctx.fill();
+        ctx.strokeStyle = accent;
+        ctx.lineWidth = 2;
+        ctx.stroke();
         ctx.fillStyle = accent;
-        ctx.fillText('Wi-Fi  100% 🔋  4:3 LANDSCAPE', w - 340, 30);
+        ctx.font = '800 20px JetBrains Mono, monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText(`⏱ ${swText}`, w / 2, 32);
+        ctx.textAlign = 'left';
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '700 18px Inter, sans-serif';
+        ctx.fillText('1280×960 · 30FPS · 100% 🔋', w - 285, 32);
 
         if (slotNum === 1) {
           /* ---- iPad 1: BLOCK CODING MAZE ---- */
-          ctx.fillStyle = '#0b192c';
-          ctx.fillRect(0, 46, w, h - 46);
+          ctx.fillStyle = '#071b1c';
+          ctx.fillRect(0, 50, w, h - 50);
 
-          // Left panel: Visual Code Blocks
-          ctx.fillStyle = '#132640';
-          drawRoundedRect(ctx, 32, 78, 430, h - 110, 24);
+          ctx.fillStyle = '#0d2b2d';
+          drawRoundedRect(ctx, 32, 82, 430, h - 114, 24);
           ctx.fill();
 
-          ctx.fillStyle = '#38bdf8';
+          ctx.fillStyle = '#2dd4bf';
           ctx.font = '800 30px Inter, sans-serif';
-          ctx.fillText('Block Coding Maze', 60, 130);
+          ctx.fillText('Block Coding Maze', 60, 134);
 
           const blocks = [
-            { text: 'WHEN ▶ RUN CLICKED', color: '#f59e0b', indent: 0 },
-            { text: 'REPEAT 4 TIMES', color: '#8b5cf6', indent: 0 },
-            { text: 'MOVE FORWARD (1)', color: '#38bdf8', indent: 26 },
-            { text: 'IF STAR FOUND → COLLECT', color: '#10b981', indent: 26 },
+            { text: 'WHEN ▶ RUN CLICKED', color: '#fbbf24', indent: 0 },
+            { text: 'REPEAT 4 TIMES', color: '#a78bfa', indent: 0 },
+            { text: 'MOVE FORWARD (1)', color: '#2dd4bf', indent: 26 },
+            { text: 'IF STAR FOUND → COLLECT', color: '#34d399', indent: 26 },
             { text: 'TURN RIGHT 90°', color: '#38bdf8', indent: 26 },
-            { text: 'PLAY VICTORY CHIME 🎵', color: '#ec4899', indent: 0 }
+            { text: 'PLAY VICTORY CHIME 🎵', color: '#f472b6', indent: 0 }
           ];
-          const activeIdx = Math.floor(t * 2) % blocks.length;
+          const activeIdx = Math.floor(t * 2.2) % blocks.length;
           blocks.forEach((b, idx) => {
             const bx = 60 + b.indent;
-            const by = 175 + idx * 102;
+            const by = 178 + idx * 102;
             const bw = 370 - b.indent;
             ctx.fillStyle = b.color;
             drawRoundedRect(ctx, bx, by, bw, 76, 16);
@@ -1851,46 +2907,42 @@
             ctx.fillText(b.text, bx + 20, by + 46);
           });
 
-          // Right panel: Interactive Maze Grid + Animated Robot
           const gx = 500;
-          const gy = 90;
+          const gy = 92;
           const cell = 122;
           for (let r = 0; r < 6; r++) {
             for (let c = 0; c < 6; c++) {
               const x = gx + c * cell;
               const y = gy + r * cell;
               const isWall = (r === 1 && c > 0 && c < 5) || (r === 3 && c > 0 && c < 4) || (r === 4 && c === 4);
-              ctx.fillStyle = isWall ? '#1e3a5f' : '#0f2542';
+              ctx.fillStyle = isWall ? '#134e4a' : '#0b2528';
               drawRoundedRect(ctx, x + 5, y + 5, cell - 10, cell - 10, 14);
               ctx.fill();
-              ctx.strokeStyle = 'rgba(56,189,248,0.22)';
+              ctx.strokeStyle = 'rgba(45,212,191,0.25)';
               ctx.lineWidth = 2;
               ctx.stroke();
             }
           }
 
-          // Robot traveling perimeter path
           const path = [
             [0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [5, 0],
             [5, 1], [5, 2], [4, 2], [3, 2], [2, 2], [1, 2], [0, 2],
             [0, 3], [0, 4], [0, 5], [1, 5], [2, 5], [3, 5], [4, 5], [5, 5]
           ];
-          const pPos = (t * 2.2) % path.length;
+          const pPos = (t * 2.5) % path.length;
           const i0 = Math.floor(pPos);
           const i1 = (i0 + 1) % path.length;
           const frac = pPos - i0;
           const rx = gx + (path[i0][0] + (path[i1][0] - path[i0][0]) * frac) * cell + cell / 2;
           const ry = gy + (path[i0][1] + (path[i1][1] - path[i0][1]) * frac) * cell + cell / 2;
 
-          // Goal Stars
           [[5, 0], [0, 2], [5, 5]].forEach(([sc, sr]) => {
             ctx.fillStyle = '#fbbf24';
             ctx.font = '48px sans-serif';
             ctx.fillText('★', gx + sc * cell + 38, gy + sr * cell + 78);
           });
 
-          // Cute Bot
-          ctx.fillStyle = '#38bdf8';
+          ctx.fillStyle = '#2dd4bf';
           ctx.beginPath();
           ctx.arc(rx, ry, 40, 0, Math.PI * 2);
           ctx.fill();
@@ -1906,111 +2958,153 @@
           ctx.stroke();
 
         } else if (slotNum === 2) {
-          /* ---- iPad 2: PYTHON ARCADE LAB ---- */
-          ctx.fillStyle = '#091916';
-          ctx.fillRect(0, 46, w, h - 46);
+          /* ---- iPad 2: PYTHON CODE EDITOR (Small Crisp Text to Test Zoom-In & Pan!) ---- */
+          ctx.fillStyle = '#07111e';
+          ctx.fillRect(0, 50, w, h - 50);
 
-          // Left: Python Code Editor
-          ctx.fillStyle = '#0f2622';
-          drawRoundedRect(ctx, 30, 78, 590, h - 110, 22);
+          // Left Sidebar: File Explorer
+          ctx.fillStyle = '#0c1b2e';
+          drawRoundedRect(ctx, 22, 74, 210, h - 98, 16);
           ctx.fill();
-          ctx.strokeStyle = 'rgba(52,211,153,0.35)';
-          ctx.lineWidth = 3;
-          ctx.stroke();
-
-          ctx.fillStyle = '#34d399';
-          ctx.font = '800 28px Inter, sans-serif';
-          ctx.fillText('Python Arcade Lab · main.py', 56, 128);
-
-          const codeLines = [
-            'import arcade, math',
-            '',
-            'ship = Sprite("rocket.png")',
-            'score = 0',
-            '',
-            'def on_update(dt):',
-            '    ship.y = 420 + math.sin(t) * 190',
-            '    for coin in coins:',
-            '        coin.x -= 280 * dt',
-            '        if ship.hits(coin):',
-            '            score += 10',
-            '            spark_burst(coin)',
-            '',
-            'arcade.run(fps=60)'
-          ];
-          const hl = Math.floor(t * 2.5) % codeLines.length;
-          ctx.font = '600 23px JetBrains Mono, monospace';
-          codeLines.forEach((line, idx) => {
-            const ly = 188 + idx * 48;
-            if (idx === hl) {
-              ctx.fillStyle = 'rgba(52, 211, 153, 0.2)';
-              ctx.fillRect(42, ly - 30, 566, 40);
-            }
-            ctx.fillStyle = idx === hl ? '#6ee7b7' : '#cbd5e1';
-            ctx.fillText(`${String(idx + 1).padStart(2, '0')}  ${line}`, 56, ly);
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = '800 17px Inter, sans-serif';
+          ctx.fillText('EXPLORER', 40, 108);
+          const files = ['▾ hallo_arcade/', '  📄 main.py', '  📄 physics.py', '  📄 sprites.py', '  📄 config.json', '  🎵 sfx_coin.wav'];
+          ctx.font = '600 15px JetBrains Mono, monospace';
+          files.forEach((f, idx) => {
+            ctx.fillStyle = idx === 1 ? '#38bdf8' : '#94a3b8';
+            ctx.fillText(f, 36, 144 + idx * 30);
           });
 
-          // Right: Live Running Arcade Viewport
-          const vx = 650;
-          const vy = 78;
-          const vw = 600;
-          const vh = h - 110;
+          // Zoom Test Hint Card in Sidebar
+          ctx.fillStyle = 'rgba(56,189,248,0.12)';
+          drawRoundedRect(ctx, 34, 360, 186, 120, 12);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(56,189,248,0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+          ctx.fillStyle = '#7dd3fc';
+          ctx.font = '800 14px Inter, sans-serif';
+          ctx.fillText('🔍 ZOOM-IN TEST', 48, 388);
+          ctx.fillStyle = '#cbd5e1';
+          ctx.font = '500 13px Inter, sans-serif';
+          ctx.fillText('Double-tap or click', 48, 414);
+          ctx.fillText('(+) to zoom 200%+', 48, 434);
+          ctx.fillText('& drag to inspect', 48, 454);
+          ctx.fillText('small Python code!', 48, 474);
+
+          // Center Panel: Small Syntax-Highlighted Python Code Editor
+          ctx.fillStyle = '#0b1626';
+          drawRoundedRect(ctx, 248, 74, 650, h - 98, 16);
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(56,189,248,0.3)';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+
+          ctx.fillStyle = '#13243b';
+          ctx.fillRect(250, 76, 646, 38);
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = '700 16px JetBrains Mono, monospace';
+          ctx.fillText('● main.py — HALLO ROOM Python Lab (Double-Tap to Zoom 200%)', 268, 100);
+
+          const pyLines = [
+            { c: '#64748b', t: '# HALLO ROOM by T.Koi — Ultra-Low-Latency Physics Demo' },
+            { c: '#38bdf8', t: 'import math, arcade' },
+            { c: '#38bdf8', t: 'from physics import Vector2, check_aabb_collision' },
+            { c: '#94a3b8', t: '' },
+            { c: '#fbbf24', t: 'GRAVITY_ACCEL = 9.81   # m/s^2 downward pull' },
+            { c: '#fbbf24', t: 'MAX_THRUST_PX = 420.0  # zoom to 250% to read clearly!' },
+            { c: '#94a3b8', t: '' },
+            { c: '#f472b6', t: 'class StarshipController(arcade.Sprite):' },
+            { c: '#34d399', t: '    def __init__(self, callsign: str, slot_id: int):' },
+            { c: '#e2e8f0', t: '        super().__init__("assets/koi_ship.png", scale=0.75)' },
+            { c: '#e2e8f0', t: '        self.callsign = callsign' },
+            { c: '#e2e8f0', t: '        self.velocity = Vector2(x=0.0, y=0.0)' },
+            { c: '#e2e8f0', t: '        self.score = 0' },
+            { c: '#94a3b8', t: '' },
+            { c: '#34d399', t: '    def update_frame(self, dt: float, elapsed: float):' },
+            { c: '#e2e8f0', t: '        # Smooth sinusoidal orbit around center Y=420' },
+            { c: '#e2e8f0', t: '        target_y = 420.0 + math.sin(elapsed * 2.6) * 185.0' },
+            { c: '#e2e8f0', t: '        self.velocity.y = (target_y - self.center_y) * 8.5' },
+            { c: '#e2e8f0', t: '        self.center_y += self.velocity.y * dt' },
+            { c: '#94a3b8', t: '' },
+            { c: '#34d399', t: '    def collect_coins(self, coin_list: list) -> int:' },
+            { c: '#e2e8f0', t: '        hits = [c for c in coin_list if check_aabb_collision(self, c)]' },
+            { c: '#e2e8f0', t: '        for coin in hits:' },
+            { c: '#fbbf24', t: '            self.score += 10  # +10 pts per golden coin' },
+            { c: '#e2e8f0', t: '            coin.respawn_right_edge()' },
+            { c: '#e2e8f0', t: '        return self.score' },
+            { c: '#94a3b8', t: '' },
+            { c: '#38bdf8', t: `if __name__ == "__main__":  # live clock: ${swText}` },
+            { c: '#34d399', t: '    arcade.run(fps=60, low_latency=True)' }
+          ];
+
+          const activeLine = Math.floor(t * 3.0) % pyLines.length;
+          ctx.font = '600 15px JetBrains Mono, monospace';
+          pyLines.forEach((line, idx) => {
+            const ly = 142 + idx * 27;
+            if (idx === activeLine) {
+              ctx.fillStyle = 'rgba(56, 189, 248, 0.16)';
+              ctx.fillRect(252, ly - 17, 642, 24);
+            }
+            ctx.fillStyle = '#475569';
+            ctx.fillText(String(idx + 1).padStart(2, '0'), 264, ly);
+            ctx.fillStyle = line.c;
+            ctx.fillText(line.t, 300, ly);
+          });
+
+          // Right Panel: Live Mini Arcade Runner
+          const vx = 916;
+          const vy = 74;
+          const vw = 342;
+          const vh = h - 98;
           ctx.fillStyle = '#040b14';
-          drawRoundedRect(ctx, vx, vy, vw, vh, 22);
+          drawRoundedRect(ctx, vx, vy, vw, vh, 16);
           ctx.fill();
           ctx.save();
           ctx.clip();
 
-          // Scrolling starfield
-          for (let s = 0; s < 36; s++) {
-            const sx = vx + ((s * 97 - t * (120 + (s % 4) * 50)) % vw + vw) % vw;
+          for (let s = 0; s < 28; s++) {
+            const sx = vx + ((s * 67 - t * (130 + (s % 4) * 40)) % vw + vw) % vw;
             const sy = vy + (s * 73) % vh;
             ctx.fillStyle = 'rgba(255,255,255,0.65)';
-            ctx.fillRect(sx, sy, 4, 4);
+            ctx.fillRect(sx, sy, 3, 3);
           }
 
-          // Coins scrolling left
           for (let c = 0; c < 4; c++) {
-            const cx = vx + ((c * 170 - t * 220) % vw + vw) % vw;
-            const cy = vy + 180 + Math.sin(c * 2.1 + t) * 210 + 180;
+            const cx = vx + ((c * 110 - t * 210) % vw + vw) % vw;
+            const cy = vy + 180 + Math.sin(c * 2.1 + t) * 200 + 180;
             ctx.fillStyle = '#fbbf24';
             ctx.beginPath();
-            ctx.arc(cx, cy, 22, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.fillStyle = '#fef3c7';
-            ctx.beginPath();
-            ctx.arc(cx - 5, cy - 5, 7, 0, Math.PI * 2);
+            ctx.arc(cx, cy, 18, 0, Math.PI * 2);
             ctx.fill();
           }
 
-          // Starship moving vertically
-          const shipX = vx + 140;
-          const shipY = vy + vh / 2 + Math.sin(t * 2.4) * 200;
-          ctx.fillStyle = '#34d399';
+          const shipX = vx + 95;
+          const shipY = vy + vh / 2 + Math.sin(t * 2.6) * 200;
+          ctx.fillStyle = '#38bdf8';
           ctx.beginPath();
-          ctx.moveTo(shipX + 54, shipY);
-          ctx.lineTo(shipX - 32, shipY - 30);
-          ctx.lineTo(shipX - 18, shipY);
-          ctx.lineTo(shipX - 32, shipY + 30);
+          ctx.moveTo(shipX + 44, shipY);
+          ctx.lineTo(shipX - 26, shipY - 24);
+          ctx.lineTo(shipX - 14, shipY);
+          ctx.lineTo(shipX - 26, shipY + 24);
           ctx.closePath();
           ctx.fill();
 
-          // Score HUD
-          ctx.fillStyle = '#34d399';
-          ctx.font = '800 28px JetBrains Mono, monospace';
-          ctx.fillText(`SCORE: ${Math.floor(t * 25) * 10}`, vx + 28, vy + 54);
+          ctx.fillStyle = '#38bdf8';
+          ctx.font = '800 22px JetBrains Mono, monospace';
+          ctx.fillText(`SCORE: ${Math.floor(t * 30) * 10}`, vx + 22, vy + 44);
           ctx.restore();
 
         } else if (slotNum === 3) {
           /* ---- iPad 3: ENGLISH PHONICS QUIZ ---- */
-          ctx.fillStyle = '#1f1708';
-          ctx.fillRect(0, 46, w, h - 46);
+          ctx.fillStyle = '#1d1507';
+          ctx.fillRect(0, 50, w, h - 50);
 
           ctx.fillStyle = '#fbbf24';
-          ctx.font = '900 40px Inter, sans-serif';
-          ctx.fillText('English Phonics Studio — Long "A" Sound', 54, 128);
+          ctx.font = '900 38px Inter, sans-serif';
+          ctx.fillText('English Phonics Studio — Long "A" Vowel Team', 54, 130);
 
-          // Main Featured Word Card
           const words = [
             { word: 'RAINBOW', phonics: '/reɪn-boʊ/', emoji: '🌈', choices: ['ai', 'ee', 'oo', 'oa'], ans: 0 },
             { word: 'TRAIN', phonics: '/treɪn/', emoji: '🚆', choices: ['oa', 'ai', 'ea', 'ie'], ans: 1 },
@@ -2019,41 +3113,39 @@
           const item = words[Math.floor(t / 3.5) % words.length];
 
           ctx.fillStyle = '#2c200b';
-          drawRoundedRect(ctx, 54, 168, 560, 560, 32);
+          drawRoundedRect(ctx, 54, 170, 560, 560, 32);
           ctx.fill();
           ctx.strokeStyle = '#fbbf24';
           ctx.lineWidth = 4;
           ctx.stroke();
 
-          ctx.font = '160px sans-serif';
+          ctx.font = '156px sans-serif';
           ctx.textAlign = 'center';
           ctx.fillText(item.emoji, 334, 385);
           ctx.fillStyle = '#ffffff';
-          ctx.font = '900 66px Inter, sans-serif';
+          ctx.font = '900 64px Inter, sans-serif';
           ctx.fillText(item.word, 334, 520);
           ctx.fillStyle = '#fcd34d';
-          ctx.font = '700 34px JetBrains Mono, monospace';
+          ctx.font = '700 32px JetBrains Mono, monospace';
           ctx.fillText(item.phonics, 334, 585);
           ctx.textAlign = 'left';
 
-          // Live Audio Waveform Bar
           for (let b = 0; b < 24; b++) {
-            const bh = 18 + Math.abs(Math.sin(t * 5 + b * 0.6)) * 64;
+            const bh = 18 + Math.abs(Math.sin(t * 6 + b * 0.6)) * 64;
             ctx.fillStyle = '#fbbf24';
             drawRoundedRect(ctx, 102 + b * 19, 675 - bh / 2, 11, bh, 6);
             ctx.fill();
           }
 
-          // Right Side: 4 Interactive Choice Tiles
           ctx.fillStyle = '#fde68a';
           ctx.font = '800 30px Inter, sans-serif';
-          ctx.fillText('Tap the matching vowel team:', 665, 220);
+          ctx.fillText('Tap the matching vowel team:', 665, 222);
 
           item.choices.forEach((ch, idx) => {
             const col = idx % 2;
             const row = Math.floor(idx / 2);
             const cx = 665 + col * 285;
-            const cy = 260 + row * 235;
+            const cy = 262 + row * 235;
             const isCorrect = idx === item.ans;
             ctx.fillStyle = isCorrect ? '#fbbf24' : '#332612';
             drawRoundedRect(ctx, cx, cy, 255, 200, 28);
@@ -2065,28 +3157,26 @@
             ctx.textAlign = 'left';
           });
 
-          // Progress Bar
           ctx.fillStyle = '#3b2b12';
-          drawRoundedRect(ctx, 54, 785, w - 108, 42, 21);
+          drawRoundedRect(ctx, 54, 788, w - 108, 42, 21);
           ctx.fill();
-          ctx.fillStyle = '#34d399';
-          drawRoundedRect(ctx, 54, 785, (w - 108) * (0.45 + 0.45 * ((t % 6) / 6)), 42, 21);
+          ctx.fillStyle = '#2dd4bf';
+          drawRoundedRect(ctx, 54, 788, (w - 108) * (0.45 + 0.45 * ((t % 6) / 6)), 42, 21);
           ctx.fill();
 
         } else {
           /* ---- iPad 4: PIXEL ART CANVAS ---- */
           ctx.fillStyle = '#1b0d1a';
-          ctx.fillRect(0, 46, w, h - 46);
+          ctx.fillRect(0, 50, w, h - 50);
 
-          // Left Color Palette Sidebar
           ctx.fillStyle = '#291427';
-          drawRoundedRect(ctx, 32, 78, 170, h - 110, 24);
+          drawRoundedRect(ctx, 32, 82, 170, h - 114, 24);
           ctx.fill();
 
-          const palette = ['#f472b6', '#38bdf8', '#34d399', '#fbbf24', '#fb7185', '#a78bfa', '#ffffff'];
-          const activeColorIdx = Math.floor(t * 1.5) % palette.length;
+          const palette = ['#f472b6', '#2dd4bf', '#38bdf8', '#fbbf24', '#fb7185', '#a78bfa', '#ffffff'];
+          const activeColorIdx = Math.floor(t * 1.8) % palette.length;
           palette.forEach((col, idx) => {
-            const py = 128 + idx * 108;
+            const py = 132 + idx * 108;
             ctx.fillStyle = col;
             ctx.beginPath();
             ctx.arc(117, py, 34, 0, Math.PI * 2);
@@ -2098,18 +3188,16 @@
             }
           });
 
-          // Right Main Pixel Canvas (16x12 grid)
           ctx.fillStyle = '#f472b6';
           ctx.font = '900 34px Inter, sans-serif';
-          ctx.fillText('Pixel Art Studio — Koi Mascot (16×12)', 244, 122);
+          ctx.fillText('Pixel Art Studio — T.Koi Mascot (16×12)', 244, 126);
 
           const cols = 16;
           const rows = 12;
           const pxSize = 62;
           const ox = 244;
-          const oy = 152;
+          const oy = 156;
 
-          // Cute pixel heart/cat sprite pattern
           const pattern = [
             '0000000000000000',
             '0001100000011000',
@@ -2129,10 +3217,10 @@
             '2': '#fbcfe8',
             '3': '#020617',
             '4': '#fbbf24',
-            '5': '#38bdf8'
+            '5': '#2dd4bf'
           };
 
-          const revealCount = Math.floor((t * 28) % (cols * rows + 24));
+          const revealCount = Math.floor((t * 32) % (cols * rows + 24));
           let cellIndex = 0;
 
           for (let r = 0; r < rows; r++) {
@@ -2146,7 +3234,6 @@
             }
           }
 
-          // Animated brush cursor over active pixel
           const cursorIdx = Math.min(revealCount, cols * rows - 1);
           const cc = cursorIdx % cols;
           const cr = Math.floor(cursorIdx / cols);
@@ -2157,7 +3244,7 @@
       }
 
       /* ------------------------------------------------------------------- */
-      /* 7. SENDER MODE (1-TAP HORIZONTAL IPAD CAPTURE + WEBRTC)             */
+      /* 10. IPAD SENDER (1-TAP H.264 MIRROR + LIVE LATENCY MODE SYNC)       */
       /* ------------------------------------------------------------------- */
 
       function checkSenderOrientation() {
@@ -2165,18 +3252,17 @@
         dom.portraitWarningBanner.classList.toggle('hidden', !isPortrait);
       }
 
-      function openSenderMode({ room = '', slot = 1, directLink = false } = {}) {
+      function openSenderMode({ room = '', slot = 1, mode = 'ultra', directLink = false } = {}) {
         switchView('sender');
         state.sender.fromDirectLink = directLink;
 
-        const cleanRoom = sanitizeRoomCode(room || state.sender.roomCode || getSavedLockedRoom());
+        const cleanRoom = sanitizeRoomCode(room || state.sender.roomCode || getSavedLockedRoom() || DEFAULT_ROOM_CODE);
         state.sender.roomCode = cleanRoom;
         dom.inputRoomCode.value = cleanRoom;
 
+        selectSenderMode(sanitizeLatencyMode(mode));
         selectSenderSlot(slot >= 1 && slot <= 4 ? slot : 1);
 
-        // If opened from a slot QR code or Home Screen bookmark with a valid room,
-        // collapse the settings panel so the giant 1-Tap button is front and center!
         const hasValidDirect = directLink && cleanRoom.length >= 3;
         setSenderSettingsOpen(!hasValidDirect);
 
@@ -2209,13 +3295,30 @@
         updateSenderHeaderUI();
       }
 
+      function selectSenderMode(modeKey) {
+        const clean = sanitizeLatencyMode(modeKey);
+        state.sender.mode = clean;
+
+        dom.senderModePickBtns.forEach((btn) => {
+          const isMatch = btn.dataset.pickMode === clean;
+          btn.style.borderColor = isMatch ? '#2dd4bf' : '#1e293b';
+          btn.classList.toggle('bg-slate-800', isMatch);
+          btn.classList.toggle('text-teal-300', isMatch);
+        });
+
+        updateSenderHeaderUI();
+      }
+
       function updateSenderHeaderUI() {
         const s = state.sender.slot;
         const meta = SLOTS[s];
+        const cfg = LATENCY_MODES[state.sender.mode];
         dom.senderSlotBadge.textContent = String(s);
         dom.senderSlotBadge.style.backgroundColor = meta.hex;
         dom.senderReadyHeading.textContent = `Ready to Mirror — iPad Slot ${s}`;
         dom.senderRoomDisplay.textContent = state.sender.roomCode || 'ENTER CODE';
+        dom.senderModeSummary.textContent = `${cfg.shortLabel} (${cfg.width}×${cfg.height} · ${cfg.fps}fps · H.264)`;
+        dom.senderLiveModeBadge.textContent = `${cfg.label} · ${cfg.fps}fps · H.264`;
       }
 
       function setSenderStatus(kind, text) {
@@ -2241,8 +3344,8 @@
 
       /**
        * CRITICAL SAFARI GESTURE RULE:
-       * Calls navigator.mediaDevices.getDisplayMedia() DIRECTLY inside the button's
-       * click handler with ZERO awaits before it!
+       * Calls navigator.mediaDevices.getDisplayMedia() DIRECTLY inside the button click handler
+       * with ZERO awaits before it, forcing audio: false to avoid A/V lip-sync buffering.
        */
       function onTapMirrorScreenClick() {
         hideSenderError();
@@ -2254,28 +3357,29 @@
 
         if (roomCode.length < 3) {
           setSenderSettingsOpen(true);
-          showSenderError('Enter Room Code First', 'Type the Room Code shown on the HALLO ROOM board (or scan a slot QR code).');
+          showSenderError('Enter Room Code First', 'Type the Room Code shown on the HALLO ROOM Host Studio (or scan a slot QR code).');
           dom.inputRoomCode.focus();
           return;
         }
 
         if (!navigator.mediaDevices || typeof navigator.mediaDevices.getDisplayMedia !== 'function') {
           showSenderError(
-            'Screen Mirror Not Supported in This Safari Version',
-            'iPad screen capture requires iPadOS 27+ over HTTPS. Tap "Use Camera Instead (Older iPadOS)" right below to connect immediately.'
+            'Screen Mirror Not Supported on This iPadOS Version',
+            'Browser screen capture requires iPadOS 27+ over HTTPS. Tap "Use Camera Instead (Older iPadOS Fallback)" right below to connect immediately.'
           );
           setSenderStatus('error', 'Unsupported');
           return;
         }
 
+        const cfg = LATENCY_MODES[state.sender.mode];
         setSenderStatus('connecting', 'Starting Screen Share...');
 
-        // SYNCHRONOUS call inside click gesture (Horizontal 4:3 iPad constraints)
+        // SYNCHRONOUS call inside click gesture — audio: false eliminates A/V sync delay buffering
         const streamPromise = navigator.mediaDevices.getDisplayMedia({
           video: {
-            width: { ideal: HORIZONTAL_CAPTURE.width },
-            height: { ideal: HORIZONTAL_CAPTURE.height },
-            frameRate: { ideal: HORIZONTAL_CAPTURE.fps }
+            width: { ideal: cfg.width },
+            height: { ideal: cfg.height },
+            frameRate: { ideal: cfg.fps }
           },
           audio: false
         });
@@ -2289,19 +3393,19 @@
             if (name === 'NotAllowedError') {
               showSenderError(
                 'Screen Share Cancelled or Blocked',
-                'Tap "TAP TO MIRROR SCREEN" again and allow screen sharing, or use "Use Camera Instead (Older iPadOS)" if testing inside a restricted preview.'
+                'Tap "TAP TO MIRROR SCREEN" again and allow screen sharing, or use the Camera fallback below.'
               );
             } else {
               showSenderError(
                 'Could Not Capture Screen',
-                `${err && err.message ? err.message : 'Screen capture unavailable.'} Ensure HTTPS on iPadOS 27+, or tap "Use Camera Instead (Older iPadOS)".`
+                `${err && err.message ? err.message : 'Screen capture unavailable.'} Ensure HTTPS on iPadOS 27+, or use Camera fallback.`
               );
             }
           });
       }
 
       /**
-       * Secondary Camera Fallback (also invokes getUserMedia directly inside click handler).
+       * Secondary Camera Fallback (also calls getUserMedia synchronously inside click gesture, audio: false).
        */
       function onTapCameraFallbackClick() {
         hideSenderError();
@@ -2313,7 +3417,7 @@
 
         if (roomCode.length < 3) {
           setSenderSettingsOpen(true);
-          showSenderError('Enter Room Code First', 'Type the Room Code shown on the HALLO ROOM board first.');
+          showSenderError('Enter Room Code First', 'Type the Room Code shown on the HALLO ROOM Host Studio first.');
           dom.inputRoomCode.focus();
           return;
         }
@@ -2323,14 +3427,15 @@
           return;
         }
 
+        const cfg = LATENCY_MODES[state.sender.mode];
         setSenderStatus('connecting', 'Opening Camera...');
 
         navigator.mediaDevices.getUserMedia({
           video: {
             facingMode: { ideal: 'environment' },
-            width: { ideal: HORIZONTAL_CAPTURE.width },
-            height: { ideal: HORIZONTAL_CAPTURE.height },
-            frameRate: { ideal: HORIZONTAL_CAPTURE.fps }
+            width: { ideal: cfg.width },
+            height: { ideal: cfg.height },
+            frameRate: { ideal: cfg.fps }
           },
           audio: false
         })
@@ -2343,10 +3448,6 @@
           });
       }
 
-      /**
-       * Stream acquired -> display local horizontal preview, attach ended teardown,
-       * open PeerJS DataConnection + MediaConnection, and cap bitrate (~1.2 Mbps).
-       */
       function beginWebRTCBroadcast(localStream, roomCode) {
         if (typeof Peer === 'undefined') {
           localStream.getTracks().forEach((t) => t.stop());
@@ -2357,12 +3458,12 @@
 
         const slotNum = state.sender.slot;
         const studentName = (dom.inputStudentName.value || '').trim().slice(0, 24) || `iPad ${slotNum}`;
+        const cfg = LATENCY_MODES[state.sender.mode];
 
         state.sender.localStream = localStream;
         state.sender.studentName = studentName;
         state.sender.isStreaming = true;
 
-        // UI -> Live state
         setSenderSettingsOpen(false);
         dom.senderIdleActions.classList.add('hidden');
         dom.senderLivePanel.classList.remove('hidden');
@@ -2372,13 +3473,17 @@
         dom.senderLocalVideo.muted = true;
         dom.senderLocalVideo.play().catch(() => {});
 
-        // Zero-freeze teardown: listen for iPadOS Control Center / browser Stop Sharing
+        // Set initial track contentHint & ended listener for zero-freeze teardown
         const videoTrack = localStream.getVideoTracks()[0];
         if (videoTrack) {
-          const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
-          if (settings.width && settings.height) {
-            dom.senderLiveStats.textContent = `${settings.width}×${settings.height}`;
+          if ('contentHint' in videoTrack) {
+            try { videoTrack.contentHint = cfg.contentHint; } catch (_) {}
           }
+          const settings = videoTrack.getSettings ? videoTrack.getSettings() : {};
+          const w = settings.width || cfg.width;
+          const h = settings.height || cfg.height;
+          dom.senderLiveStats.textContent = `${w}×${h} · ${cfg.fps}fps`;
+
           videoTrack.addEventListener('ended', () => {
             if (state.sender.isStreaming) {
               stopSenderBroadcast({ notifyHost: true, message: 'Mirroring stopped.' });
@@ -2386,7 +3491,6 @@
           });
         }
 
-        // Open PeerJS client & connect to HALLO ROOM board
         if (state.sender.peer) {
           try { state.sender.peer.destroy(); } catch (_) {}
           state.sender.peer = null;
@@ -2401,25 +3505,36 @@
         peer.on('open', () => {
           if (!state.sender.isStreaming) return;
 
-          // DataConnection for instant STOP & HOST_DISCONNECT signals
+          // DataConnection for instant STOP, HOST_DISCONNECT, and live SET_MODE tuning
           const dc = peer.connect(hostId, { reliable: true });
           state.sender.dataConn = dc;
 
           dc.on('open', () => {
             try {
-              dc.send({ type: 'HELLO', slot: slotNum, name: studentName });
+              dc.send({ type: 'HELLO', slot: slotNum, name: studentName, mode: state.sender.mode });
             } catch (_) {}
           });
 
           dc.on('data', (msg) => {
-            if (msg && msg.type === 'HOST_DISCONNECT') {
-              stopSenderBroadcast({ notifyHost: false, message: 'Disconnected by teacher board.' });
+            if (!msg || typeof msg !== 'object') return;
+            if (msg.type === 'HOST_DISCONNECT') {
+              stopSenderBroadcast({ notifyHost: false, message: 'Disconnected by Host Studio.' });
+            } else if (msg.type === 'SET_MODE' && msg.mode) {
+              // UPGRADE 1: Live dynamic RTCRtpSender tuning from Host without reconnecting!
+              const nextMode = sanitizeLatencyMode(msg.mode);
+              selectSenderMode(nextMode);
+              const pc = state.sender.call && state.sender.call.peerConnection;
+              applySenderLatencyProfile(pc, state.sender.localStream, nextMode);
+              const nextCfg = LATENCY_MODES[nextMode];
+              dom.senderLiveStats.textContent = `${nextCfg.width}×${nextCfg.height} · ${nextCfg.fps}fps`;
+              showToast(`Host switched stream to ${nextCfg.label} (${nextCfg.fps}fps)`, 'info');
             }
           });
 
-          // Media Call to Classroom Board
+          // Media Call with Hardware H.264 SDP priority
           const call = peer.call(hostId, localStream, {
-            metadata: { slot: slotNum, name: studentName }
+            metadata: { slot: slotNum, name: studentName, mode: state.sender.mode },
+            sdpTransform: preferH264InSdp
           });
 
           if (!call) {
@@ -2432,24 +3547,25 @@
           setSenderStatus('live', `Live · Slot ${slotNum}`);
           showToast(`Mirroring to HALLO ROOM (${roomCode} · Slot ${slotNum})`, 'success');
 
-          // Cap outgoing WebRTC bitrate (~1.2 Mbps) for smooth 4-iPad school Wi-Fi
           if (call.peerConnection) {
-            capOutgoingBitrate(call.peerConnection, HORIZONTAL_CAPTURE.maxBitrate);
+            applyH264TransceiverPreference(call.peerConnection);
+            applySenderLatencyProfile(call.peerConnection, localStream, state.sender.mode);
+
             call.peerConnection.addEventListener('iceconnectionstatechange', () => {
               const ice = call.peerConnection.iceConnectionState;
               if (ice === 'connected' || ice === 'completed') {
-                capOutgoingBitrate(call.peerConnection, HORIZONTAL_CAPTURE.maxBitrate);
+                applySenderLatencyProfile(call.peerConnection, localStream, state.sender.mode);
                 setSenderStatus('live', `Live · Slot ${slotNum}`);
               } else if (ice === 'failed') {
                 stopSenderBroadcast({ notifyHost: true });
-                showSenderError('Wi-Fi Link Dropped', 'Lost peer-to-peer connection to the Classroom Board. Tap to mirror again.');
+                showSenderError('Wi-Fi Link Dropped', 'Lost peer-to-peer connection to the Host Studio. Tap to mirror again.');
               }
             });
           }
 
           call.on('close', () => {
             if (state.sender.isStreaming && state.sender.call === call) {
-              stopSenderBroadcast({ notifyHost: false, message: 'Session ended by board.' });
+              stopSenderBroadcast({ notifyHost: false, message: 'Session ended by Host Studio.' });
             }
           });
 
@@ -2468,7 +3584,7 @@
             stopSenderBroadcast({ notifyHost: false });
             showSenderError(
               `Room "${roomCode}" Not Open`,
-              'No HALLO ROOM board was found for that code. Make sure the Teacher TV is open to the matching Room Code.'
+              'No HALLO ROOM Host Studio was found for that Room Code. Open Host Studio on the Teacher TV first.'
             );
           } else {
             stopSenderBroadcast({ notifyHost: false });
@@ -2477,30 +3593,9 @@
         });
       }
 
-      /**
-       * Cap outgoing video bitrate (~1.2 Mbps) safely via RTCRtpSender.setParameters().
-       */
-      function capOutgoingBitrate(pc, maxBitrate) {
-        try {
-          if (!pc || typeof pc.getSenders !== 'function') return;
-          const sender = pc.getSenders().find((s) => s.track && s.track.kind === 'video');
-          if (!sender || typeof sender.getParameters !== 'function') return;
-
-          const params = sender.getParameters();
-          if (!params.encodings || params.encodings.length === 0) {
-            params.encodings = [{}];
-          }
-          params.encodings[0].maxBitrate = maxBitrate;
-          sender.setParameters(params).catch(() => {});
-        } catch (err) {
-          console.warn('Bitrate cap skipped:', err);
-        }
-      }
-
       function stopSenderBroadcast({ notifyHost = true, message = '' } = {}) {
         state.sender.isStreaming = false;
 
-        // Immediately notify Viewer so slot clears back to QR code with zero freeze!
         if (notifyHost && state.sender.dataConn && state.sender.dataConn.open) {
           try {
             state.sender.dataConn.send({ type: 'STOP', slot: state.sender.slot });
@@ -2542,7 +3637,7 @@
       }
 
       /* ------------------------------------------------------------------- */
-      /* 8. MODALS & FULLSCREEN                                              */
+      /* 11. MODALS, FULLSCREEN, URL DEEP LINK & EVENT WIRING                */
       /* ------------------------------------------------------------------- */
 
       function openRoomSettingsModal() {
@@ -2572,7 +3667,6 @@
         setSavedLockedRoom(shouldLock ? nextRoom : '');
 
         if (roomChanged) {
-          // Disconnect active live peers before switching room host ID
           for (let i = 1; i <= 4; i++) {
             if (!state.viewer.slots[i].isDemo) {
               clearViewerSlot(i, { notifySender: true });
@@ -2582,7 +3676,7 @@
           renderAllSlotQRCodes();
           initViewerPeer(nextRoom);
         } else {
-          showToast(shouldLock ? `Room "${nextRoom}" locked for daily bookmarks!` : 'Room lock removed', 'success');
+          showToast(shouldLock ? `Room "${nextRoom}" locked in this browser!` : 'Room lock removed', 'success');
         }
 
         updateViewerRoomHeaderUI();
@@ -2623,23 +3717,23 @@
         } catch (_) {}
       }
 
-      /* ------------------------------------------------------------------- */
-      /* 9. URL ROUTING & EVENT WIRING                                       */
-      /* ------------------------------------------------------------------- */
-
       function handleUrlDeepLink() {
         try {
           const params = new URLSearchParams(window.location.search);
+          const role = (params.get('role') || '').toLowerCase();
           const room = sanitizeRoomCode(params.get('room') || '');
           const slot = parseInt(params.get('slot') || '1', 10);
+          const mode = sanitizeLatencyMode(params.get('mode') || 'ultra');
 
-          if (room.length >= 3) {
-            // Skip role selection completely -> jump straight to 1-tap horizontal mirror screen!
+          if (role === 'sender' || room.length >= 3) {
             openSenderMode({
-              room,
+              room: room || getSavedLockedRoom() || DEFAULT_ROOM_CODE,
               slot: slot >= 1 && slot <= 4 ? slot : 1,
-              directLink: true
+              mode,
+              directLink: room.length >= 3
             });
+          } else if (role === 'host' || role === 'viewer') {
+            startViewerMode();
           }
         } catch (err) {
           console.warn('Deep link parse skipped:', err);
@@ -2647,17 +3741,18 @@
       }
 
       function bindEvents() {
-        // Landing buttons
+        // Landing Buttons
         dom.btnLaunchViewer.addEventListener('click', startViewerMode);
         dom.btnLaunchSender.addEventListener('click', () => {
           openSenderMode({
-            room: getSavedLockedRoom(),
+            room: getSavedLockedRoom() || DEFAULT_ROOM_CODE,
             slot: state.sender.slot || 1,
+            mode: state.sender.mode || 'ultra',
             directLink: false
           });
         });
 
-        // AirPlay Note triggers
+        // AirPlay Note Modal
         document.querySelectorAll('[data-open-airplay-note]').forEach((btn) => {
           btn.addEventListener('click', openAirplayModal);
         });
@@ -2667,9 +3762,9 @@
           if (e.target === dom.modalAirplayNote) closeAirplayModal();
         });
 
-        // Viewer Header Controls
+        // Host Studio Header Controls
         dom.btnCopyRoom.addEventListener('click', () => {
-          const url = buildJoinUrl(state.viewer.roomCode);
+          const url = buildJoinUrl(state.viewer.roomCode, null, state.viewer.latencyMode);
           const ok = copyTextToClipboard(url);
           showToast(ok ? `Copied Join Link for "${state.viewer.roomCode}"` : `Room Code: ${state.viewer.roomCode}`, ok ? 'success' : 'info');
         });
@@ -2691,34 +3786,45 @@
           if (e.target === dom.modalRoomSettings) closeRoomSettingsModal();
         });
 
+        // Latency Mode Selector Buttons
+        dom.btnModeUltra.addEventListener('click', () => setHostLatencyMode('ultra'));
+        dom.btnModeBalanced.addEventListener('click', () => setHostLatencyMode('balanced'));
+        dom.btnModeSharp.addEventListener('click', () => setHostLatencyMode('sharp'));
+
+        // Global Fill Box / Full Fit Toggle (clears per-slot override so global applies cleanly)
+        dom.btnFitCover.addEventListener('click', () => {
+          state.viewer.fitMode = 'cover';
+          for (let i = 1; i <= 4; i++) state.viewer.slots[i].fitOverride = null;
+          updateViewerToggleButtonsUI();
+          for (let i = 1; i <= 4; i++) applySlotTransform(i, { smooth: true });
+        });
+
+        dom.btnFitContain.addEventListener('click', () => {
+          state.viewer.fitMode = 'contain';
+          for (let i = 1; i <= 4; i++) state.viewer.slots[i].fitOverride = null;
+          updateViewerToggleButtonsUI();
+          for (let i = 1; i <= 4; i++) applySlotTransform(i, { smooth: true });
+        });
+
+        // 2x2 vs Auto-Fit Grid
         dom.btnLayout2x2.addEventListener('click', () => {
           state.viewer.layoutMode = '2x2';
-          state.viewer.spotlightSlot = null;
+          exitSpotlight();
           updateViewerToggleButtonsUI();
-          for (let i = 1; i <= 4; i++) updateSlotUI(i);
           renderViewerGridLayout();
         });
 
         dom.btnLayoutAuto.addEventListener('click', () => {
           state.viewer.layoutMode = 'auto';
-          state.viewer.spotlightSlot = null;
+          exitSpotlight();
           updateViewerToggleButtonsUI();
-          for (let i = 1; i <= 4; i++) updateSlotUI(i);
           renderViewerGridLayout();
         });
 
-        dom.btnFitCover.addEventListener('click', () => {
-          state.viewer.fitMode = 'cover';
-          updateViewerToggleButtonsUI();
-          for (let i = 1; i <= 4; i++) applySlotVideoGeometry(i);
-        });
+        // Reset All Zoom
+        dom.btnResetAllZoom.addEventListener('click', resetAllSlotsZoom);
 
-        dom.btnFitContain.addEventListener('click', () => {
-          state.viewer.fitMode = 'contain';
-          updateViewerToggleButtonsUI();
-          for (let i = 1; i <= 4; i++) applySlotVideoGeometry(i);
-        });
-
+        // Demo, Fullscreen, Top Bar Hide/Show, Exit
         dom.btnToggleDemo.addEventListener('click', toggleDemoStreams);
         dom.btnFullscreen.addEventListener('click', toggleFullscreen);
 
@@ -2727,7 +3833,7 @@
           dom.viewerTopbar.classList.add('hidden');
           dom.btnShowTopbar.classList.remove('hidden');
           requestAnimationFrame(() => {
-            for (let i = 1; i <= 4; i++) applySlotVideoGeometry(i);
+            for (let i = 1; i <= 4; i++) applySlotTransform(i, { smooth: false });
           });
         });
 
@@ -2736,13 +3842,49 @@
           dom.viewerTopbar.classList.remove('hidden');
           dom.btnShowTopbar.classList.add('hidden');
           requestAnimationFrame(() => {
-            for (let i = 1; i <= 4; i++) applySlotVideoGeometry(i);
+            for (let i = 1; i <= 4; i++) applySlotTransform(i, { smooth: false });
           });
         });
 
         dom.btnViewerExit.addEventListener('click', exitViewerMode);
 
-        // Keyboard Esc closes modals or exits Spotlight Mode
+        // Spotlight Bar Controls
+        dom.btnSpotlightBack.addEventListener('click', exitSpotlight);
+
+        dom.btnSpotZoomOut.addEventListener('click', () => {
+          if (state.viewer.spotlightSlot !== null) stepSlotZoom(state.viewer.spotlightSlot, -ZOOM_STEP);
+        });
+
+        dom.btnSpotZoomIn.addEventListener('click', () => {
+          if (state.viewer.spotlightSlot !== null) stepSlotZoom(state.viewer.spotlightSlot, ZOOM_STEP);
+        });
+
+        dom.btnSpotZoomReset.addEventListener('click', () => {
+          if (state.viewer.spotlightSlot !== null) resetSlotZoom(state.viewer.spotlightSlot);
+        });
+
+        dom.spotZoomSlider.addEventListener('input', (e) => {
+          if (state.viewer.spotlightSlot !== null) {
+            setSlotZoom(state.viewer.spotlightSlot, Number(e.target.value) / 100, { smooth: false });
+          }
+        });
+
+        dom.btnSpotFit.addEventListener('click', () => {
+          const slotNum = state.viewer.spotlightSlot;
+          if (slotNum === null) return;
+          const cur = getEffectiveFitMode(slotNum);
+          state.viewer.slots[slotNum].fitOverride = cur === 'cover' ? 'contain' : 'cover';
+          applySlotTransform(slotNum, { smooth: true });
+        });
+
+        dom.btnSpotRotate.addEventListener('click', () => {
+          const slotNum = state.viewer.spotlightSlot;
+          if (slotNum === null) return;
+          state.viewer.slots[slotNum].rotation = (state.viewer.slots[slotNum].rotation + 90) % 360;
+          applySlotTransform(slotNum, { smooth: true });
+        });
+
+        // Keyboard Shortcuts: Esc closes modals or exits Spotlight
         document.addEventListener('keydown', (e) => {
           if (e.key === 'Escape') {
             if (!dom.modalRoomSettings.classList.contains('hidden')) {
@@ -2750,24 +3892,29 @@
             } else if (!dom.modalAirplayNote.classList.contains('hidden')) {
               closeAirplayModal();
             } else if (state.view === 'viewer' && state.viewer.spotlightSlot !== null) {
-              toggleSpotlight(state.viewer.spotlightSlot);
+              exitSpotlight();
             }
           }
         });
 
-        // Keep rotated video geometry crisp when TV/window resizes
+        // Keep geometry & pan boundaries tight on window/TV resize or iPad rotation
         window.addEventListener('resize', () => {
           if (state.view === 'viewer') {
-            for (let i = 1; i <= 4; i++) applySlotVideoGeometry(i);
+            for (let i = 1; i <= 4; i++) {
+              if (state.viewer.slots[i].active) applySlotTransform(i, { smooth: false });
+            }
           } else if (state.view === 'sender') {
             checkSenderOrientation();
           }
         });
+
         window.addEventListener('orientationchange', () => {
           setTimeout(() => {
             if (state.view === 'sender') checkSenderOrientation();
             if (state.view === 'viewer') {
-              for (let i = 1; i <= 4; i++) applySlotVideoGeometry(i);
+              for (let i = 1; i <= 4; i++) {
+                if (state.viewer.slots[i].active) applySlotTransform(i, { smooth: false });
+              }
             }
           }, 180);
         });
@@ -2791,6 +3938,10 @@
 
         dom.senderSlotPickBtns.forEach((btn) => {
           btn.addEventListener('click', () => selectSenderSlot(Number(btn.dataset.pickSlot)));
+        });
+
+        dom.senderModePickBtns.forEach((btn) => {
+          btn.addEventListener('click', () => selectSenderMode(btn.dataset.pickMode));
         });
 
         // Direct click handlers (preserving iPad Safari transient user activation)
